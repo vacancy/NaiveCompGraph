@@ -1,0 +1,28 @@
+/*
+ * main.cc
+ * Copyright (C) 2019
+ *
+ * Distributed under terms of the MIT license.
+ */
+
+#include "core/common.h"
+#include "core/datatype.h"
+#include <iostream>
+
+namespace ncg {
+
+
+
+} /* !namespace ncg */
+
+template <ncg::DTypeName DT>
+typename ncg::DType<DT>::cctype f(void) {
+    return static_cast<typename ncg::DType<DT>::cctype>(1.345);
+}
+
+int main() {
+    std::cout << ncg::DType<ncg::DTypeName::Float32>::name << " " << f<ncg::DTypeName::Float32>() << std::endl;
+    std::cout << ncg::DType<ncg::DTypeName::Int32>::name << " " << f<ncg::DTypeName::Int32>() << std::endl;
+
+    return 0;
+}
