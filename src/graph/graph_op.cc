@@ -6,6 +6,8 @@
  */
 
 #include "graph_op.h"
+#include "graph_forward_impl.h"
+#include <memory>
 
 namespace ncg {
 
@@ -25,13 +27,7 @@ std::ostream & operator << (std::ostream &out, const GraphOp &op) {
 
 TensorPtr GraphForwardContext::tensor(const GTensorPtr &gtensor) {
     auto it = m_storage.find(reinterpret_cast<std::uintptr_t>(gtensor.get()));
-    if (it == m_storage.end()) {
-        /* TODO: topo sort. */
-        gtensor->owner_op()->forward(*this);
-        it = m_storage.find(reinterpret_cast<std::uintptr_t>(gtensor.get()));
-        ncg_assert(it != m_storage.end());
-        return it->second;
-    }
+    ncg_assert(it != m_storage.end());
     return it->second;
 }
 
@@ -55,5 +51,22 @@ const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTen
     return m_outputs;
 }
 
+TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
+    TensorVec outputs;
+    auto sorter = std::make_unique<GraphTopoSorter>(*this);
+    sorter->sort(targets);
+
+    for (const GraphOp *op: sorter->sorted()) {
+        op->forward(*this);
+        if (!ok()) {
+            return outputs;
+        }
+    }
+
+    for (const auto &t: targets) {
+        outputs.emplace_back(tensor(t));
+    }
+    return outputs;
+}
 
 } /* !namespace ncg */

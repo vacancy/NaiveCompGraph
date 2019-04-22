@@ -13,22 +13,31 @@
 
 namespace ncg {
 
-class GOpAdd : public GraphBinaryElemWiseOp<OpAdd> {
-public:
-    NCG_DEF_GOPNAME(GOpAdd);
-};
-class GOpSub : public GraphBinaryElemWiseOp<OpSub> {
-public:
-    NCG_DEF_GOPNAME(GOpSub);
-};
-class GOpMul : public GraphBinaryElemWiseOp<OpMul> {
-public:
-    NCG_DEF_GOPNAME(GOpMul);
-};
-class GOpDiv : public GraphBinaryElemWiseOp<OpDiv> {
-public:
-    NCG_DEF_GOPNAME(GOpDiv);
-};
+#define DEF_UNARY_GOP(name) \
+class GOp##name : public GraphBinaryElemWiseOp<Op##name> { \
+public: \
+    NCG_DEF_GOPNAME(GOp##name) \
+}
+
+DEF_UNARY_GOP(Neg);
+DEF_UNARY_GOP(Sin);
+DEF_UNARY_GOP(Cos);
+DEF_UNARY_GOP(Tan);
+DEF_UNARY_GOP(Log);
+DEF_UNARY_GOP(Exp);
+DEF_UNARY_GOP(Tanh);
+DEF_UNARY_GOP(Sigmoid);
+
+#define DEF_BINARY_GOP(name) \
+class GOp##name : public GraphBinaryElemWiseOp<Op##name> { \
+public: \
+    NCG_DEF_GOPNAME(GOp##name) \
+}
+
+DEF_BINARY_GOP(Add);
+DEF_BINARY_GOP(Sub);
+DEF_BINARY_GOP(Mul);
+DEF_BINARY_GOP(Div);
 
 } /* !namespace ncg */
 

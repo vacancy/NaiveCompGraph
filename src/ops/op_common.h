@@ -35,10 +35,10 @@ public:
         }
     }
 
-    virtual TensorVec compute(OpContext &, const TensorVec &inputs) {
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
 
-#define UNARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(inputs, output)
+#define UNARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
 NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
 #undef UNARY_COMPUTE_DTYPE
 
@@ -47,13 +47,13 @@ NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
 
 private:
     template <DTypeName DT>
-    void compute_inner_(const TensorVec &inputs, TensorPtr &output) {
+    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
         size_t n = inputs[0]->desc().numel();
         auto kernel = OpKernel();
         auto a = inputs[0]->as<DT>();
         auto b = output->as<DT>();
         for (ssize_t i = 0; i < n; ++i) {
-            kernel.template compute<DT>(a->elat(i), b->elat(i));
+            kernel.template compute<DT>(ctx, this, a->elat(i), b->elat(i));
         }
     }
 };
@@ -69,11 +69,11 @@ public:
         }
     }
 
-    virtual TensorVec compute(OpContext &, const TensorVec &inputs) {
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         size_t n = inputs[0]->desc().numel();
         TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
 
-#define BINARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(inputs, output)
+#define BINARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
 NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
 #undef BINARY_COMPUTE_DTYPE
 
@@ -82,14 +82,14 @@ NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
 
 private:
     template <DTypeName DT>
-    void compute_inner_(const TensorVec &inputs, TensorPtr &output) {
+    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
         size_t n = inputs[0]->desc().numel();
         auto kernel = OpKernel();
         auto a = inputs[0]->as<DT>();
         auto b = inputs[1]->as<DT>();
         auto c = output->as<DT>();
         for (ssize_t i = 0; i < n; ++i) {
-            kernel.template compute<DT>(a->elat(i), b->elat(i), c->elat(i));
+            kernel.template compute<DT>(ctx, this, a->elat(i), b->elat(i), c->elat(i));
         }
     }
 };

@@ -26,7 +26,7 @@ class GraphNetSrcOp : public GraphOp, public GraphSingleOutputOp {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         if (inputs.size() > 0) {
-            graph.error(this) << "netsrc ops do not take any inputs.";
+            graph.error(this) << "NetSrc ops do not take any inputs";
         }
     }
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
@@ -41,7 +41,7 @@ public:
     virtual void forward(GraphForwardContext &ctx) const {
         TensorPtr tensor = ctx.feed_dict(name());
         if (!tensor) {
-            ctx.error(this) << "value not found in the feed dict.";
+            ctx.error(this) << "Placeholder missing";
         }
         ctx.set_tensor(m_outputs[0], tensor);
     }

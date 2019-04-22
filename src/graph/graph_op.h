@@ -61,6 +61,8 @@ class GraphForwardContext : public OpContext {
 public:
     GraphForwardContext(Graph &graph) : m_graph(graph), m_feed_dict(), m_storage() {}
 
+    std::vector<TensorPtr> eval(const GTensorVec &);
+
     void feed(const std::string &name, TensorPtr tensor) {
         m_feed_dict.emplace(name, tensor);
     }

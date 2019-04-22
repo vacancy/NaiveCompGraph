@@ -32,7 +32,13 @@ int main() {
     GraphForwardContext ctx(graph);
     ctx.feed("x", scalar(DTypeName::Float32, 1));
     ctx.feed("y", scalar(DTypeName::Float32, 2));
-    cout << *(ctx.tensor(z)->as<DTypeName::Float32>()) << endl;
+    auto outputs = ctx.eval({z});
+
+    if (ctx.ok()) {
+        cout << *(outputs[0]->as<DTypeName::Float32>()) << endl;
+    } else {
+        cerr << ctx.error_str() << endl;
+    }
 
     return 0;
 }
