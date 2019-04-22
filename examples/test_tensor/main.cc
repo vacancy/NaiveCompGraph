@@ -17,10 +17,10 @@ using namespace std;
 
 int main() {
     auto t1 = empty(DTypeName::Float32, {3, 3});
-    cerr << t1->as<DTypeName::Float32>() << endl;
+    cerr << *t1->as<DTypeName::Float32>() << endl;
 
     auto t2 = empty(DTypeName::Float32, {});
-    cerr << t2->as<DTypeName::Float32>() << endl;
+    cerr << *t2->as<DTypeName::Float32>() << endl;
 
     return 0;
 }
