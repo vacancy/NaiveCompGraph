@@ -126,7 +126,7 @@ public:
         return out;
     }
 
-private:
+protected:
     DTypeName m_dtype;
     size_t m_shape[TensorMaxDim + 1];
     size_t m_stride[TensorMaxDim + 1];
@@ -172,7 +172,7 @@ public:
         return out;
     }
 
-private:
+protected:
     cctype *m_data_ptr;
     size_t m_size;
 };
