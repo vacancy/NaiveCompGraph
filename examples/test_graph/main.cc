@@ -22,8 +22,8 @@ using namespace std;
 
 int main() {
     Graph graph;
-    auto x = graph.op<GOpPlaceholder>("x", OpDescPtr(new GraphNetSrcOpDesc(DTypeName::Float32, {})));
-    auto y = graph.op<GOpPlaceholder>("y", OpDescPtr(new GraphNetSrcOpDesc(DTypeName::Float32, {})));
+    auto x = graph.op<GOpPlaceholder>("x", OpDescPtr(new GOpPlaceholderDesc(DTypeName::Float32, {})));
+    auto y = graph.op<GOpPlaceholder>("y", OpDescPtr(new GOpPlaceholderDesc(DTypeName::Float32, {})));
     auto z = graph.op<GOpAdd>(nullptr, x, y);
 
     cout << *z << endl;
