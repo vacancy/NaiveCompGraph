@@ -12,7 +12,7 @@
 namespace ncg {
 
 std::ostream & operator << (std::ostream &out, const GraphTensor &tensor) {
-    out << "GTensor(op=" << tensor.m_owner_op->name() << ", index=" << tensor.m_owner_op_index << ")";
+    out << "GTensor(op=" << tensor.m_owner_op->name() << ", op_type=" << tensor.m_owner_op->op_name() << ", index=" << tensor.m_owner_op_index << ")";
     return out;
 }
 

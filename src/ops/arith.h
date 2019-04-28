@@ -47,8 +47,8 @@ struct UnaryOpKernel {
 
         switch (OpType) {
             case UnaryOpKernelType::Sin: b = std::sin(a); break;
-            case UnaryOpKernelType::Sin: b = std::cos(a); break;
-            case UnaryOpKernelType::Sin: b = std::tan(a); break;
+            case UnaryOpKernelType::Cos: b = std::cos(a); break;
+            case UnaryOpKernelType::Tan: b = std::tan(a); break;
             case UnaryOpKernelType::Log:
                 if (a <= 0) {
                     ctx.error(op) << "LOG operator's input must be positive";
@@ -68,6 +68,12 @@ enum class BinaryOpKernelType : int {
     Sub,
     Mul,
     Div,
+    Ge,
+    Le,
+    Geq,
+    Leq,
+    Eq,
+    Neq,
 };
 
 template <BinaryOpKernelType OpType>
@@ -95,6 +101,12 @@ struct BinaryOpKernel {
                 }
                 c = a / b;
                 break;
+            case BinaryOpKernelType::Ge: c = a > b; break;
+            case BinaryOpKernelType::Le: c = a < b; break;
+            case BinaryOpKernelType::Geq: c = a >= b; break;
+            case BinaryOpKernelType::Leq: c = a <= b; break;
+            case BinaryOpKernelType::Eq: c = a == b; break;
+            case BinaryOpKernelType::Neq: c = a != b; break;
         }
     }
 };
@@ -125,6 +137,12 @@ DEF_BINARY_ELEMWISE_OP(Add);
 DEF_BINARY_ELEMWISE_OP(Sub);
 DEF_BINARY_ELEMWISE_OP(Mul);
 DEF_BINARY_ELEMWISE_OP(Div);
+DEF_BINARY_ELEMWISE_OP(Ge);
+DEF_BINARY_ELEMWISE_OP(Le);
+DEF_BINARY_ELEMWISE_OP(Geq);
+DEF_BINARY_ELEMWISE_OP(Leq);
+DEF_BINARY_ELEMWISE_OP(Eq);
+DEF_BINARY_ELEMWISE_OP(Neq);
 
 } /* !namespace ncg */
 

@@ -14,7 +14,7 @@
 namespace ncg {
 
 #define DEF_UNARY_GOP(name) \
-class GOp##name : public GraphBinaryElemWiseOp<Op##name> { \
+class GOp##name : public GraphUnaryElemWiseOp<Op##name> { \
 public: \
     NCG_DEF_GOPNAME(GOp##name) \
 }
@@ -38,6 +38,12 @@ DEF_BINARY_GOP(Add);
 DEF_BINARY_GOP(Sub);
 DEF_BINARY_GOP(Mul);
 DEF_BINARY_GOP(Div);
+DEF_BINARY_GOP(Ge);
+DEF_BINARY_GOP(Le);
+DEF_BINARY_GOP(Geq);
+DEF_BINARY_GOP(Leq);
+DEF_BINARY_GOP(Eq);
+DEF_BINARY_GOP(Neq);
 
 } /* !namespace ncg */
 

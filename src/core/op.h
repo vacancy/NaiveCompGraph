@@ -72,6 +72,10 @@ public:
         m_error << op->op_name() << ": ";
         return m_error;
     }
+    void reset_error(void) {
+        m_is_error = false;
+        m_error.clear();
+    }
 
 protected:
     bool m_is_error;

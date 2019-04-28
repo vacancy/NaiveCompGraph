@@ -13,7 +13,8 @@
 
 namespace ncg {
 
-class GOpPrintDesc : public OpDesc {
+struct GOpPrintDesc : OpDesc {
+public:
     GOpPrintDesc(const std::string &name = "") : name(name) {}
     std::string name;
 };
@@ -28,13 +29,13 @@ public:
         }
     }
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
-        return {make_tensor(0, inputs[0].desc())};
+        return {make_tensor(0, inputs[0]->desc())};
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
         TensorPtr tensor = ctx.tensor(m_inputs[0]);
         const std::string &name = this->template desc<GOpPrintDesc>().name;
-        std::cout << "Print Operator: " << name << "=" << tensor->as<DTypeName::Float32>()->data_ptr()[0]>;
+        std::cout << "Print Operator: " << name << "=" << tensor->as<DTypeName::Float32>()->data_ptr()[0] << std::endl;
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };

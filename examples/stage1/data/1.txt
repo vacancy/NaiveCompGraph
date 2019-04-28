@@ -1,0 +1,16 @@
+3
+x P
+y P
+z C 3.0
+4
+a = x + y
+b = a - z
+c = b * a
+res = z / c
+5
+EVAL x 1 x 1.0
+EVAL a 2 x 1.0 y 2.0
+EVAL b 2 x 1.0 y 0.0
+EVAL c 1 y 1.0
+EVAL res 2 x -1.0 y 1.0
+

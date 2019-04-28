@@ -13,15 +13,6 @@
 
 namespace ncg {
 
-class GraphNetSrcOpDesc : public OpDesc {
-public:
-    GraphNetSrcOpDesc() : desc() {}
-    GraphNetSrcOpDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
-    virtual ~GraphNetSrcOpDesc() = default;
-
-    TensorDesc desc;
-};
-
 class GraphNetSrcOp : public GraphOp, public GraphSingleOutputOp {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
@@ -29,15 +20,24 @@ public:
             graph.error(this) << "NetSrc ops do not take any inputs";
         }
     }
-    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
-        return {make_tensor(0, this->template desc<GraphNetSrcOpDesc>().desc)};
-    }
+};
+
+class GOpPlaceholderDesc : public OpDesc {
+public:
+    GOpPlaceholderDesc() : desc() {}
+    GOpPlaceholderDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    virtual ~GOpPlaceholderDesc() = default;
+
+    TensorDesc desc;
 };
 
 class GOpPlaceholder : public GraphNetSrcOp {
 public:
     NCG_DEF_GOPNAME(GOpPlaceholder);
 
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, this->template desc<GOpPlaceholderDesc>().desc)};
+    }
     virtual void forward(GraphForwardContext &ctx) const {
         TensorPtr tensor = ctx.feed_dict(name());
         if (!tensor) {
@@ -47,14 +47,50 @@ public:
     }
 };
 
+class GOpConstantDesc : public OpDesc {
+public:
+    GOpConstantDesc() : tensor() {}
+    GOpConstantDesc(const TensorPtr &tensor) : tensor(tensor) {}
+    virtual ~GOpConstantDesc() = default;
+
+    TensorPtr tensor;
+};
+
 class GOpConstant : public GraphNetSrcOp {
 public:
     NCG_DEF_GOPNAME(GOpConstant);
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, this->template desc<GOpConstantDesc>().tensor->desc())};
+    }
+    virtual void forward(GraphForwardContext &ctx) const {
+        ctx.set_tensor(m_outputs[0], this->template desc<GOpConstantDesc>().tensor);
+    }
+};
+
+class GOpVariableDesc : public OpDesc {
+public:
+    GOpVariableDesc() : tensor() {}
+    GOpVariableDesc(const TensorPtr &tensor) : tensor(tensor) {}
+    virtual ~GOpVariableDesc() = default;
+
+    TensorPtr tensor;
 };
 
 class GOpVariable : public GraphNetSrcOp {
 public:
     NCG_DEF_GOPNAME(GOpVariable);
+
+    void set_value(const TensorPtr &tensor) {
+        /* TODO: Check shape and dtype. */
+        this->template desc<GOpVariableDesc>().tensor = tensor;
+    }
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, this->template desc<GOpVariableDesc>().tensor->desc())};
+    }
+    virtual void forward(GraphForwardContext &ctx) const {
+        ctx.set_tensor(m_outputs[0], this->template desc<GOpVariableDesc>().tensor);
+    }
 };
 
 } /* !namespace ncg */

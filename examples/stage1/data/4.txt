@@ -1,0 +1,10 @@
+2
+x P
+z C 3.0
+4
+t = PRINT x
+a = t + z
+b = t + a
+c = t + b
+1
+EVAL c 1 x 1.0

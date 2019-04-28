@@ -1,0 +1,11 @@
+2
+x P
+y V 1.0
+1
+res = x + y
+5
+EVAL res 1 x 1.0
+SETCONSTANT y 2.0
+EVAL res 1 x 2.0
+SETANSWER y 3
+EVAL res 1 x 1.0

@@ -33,9 +33,15 @@ public:
     }
     virtual ~GraphTensor(void) = default;
 
-    const GraphOp *owner_op(void) const {
-        return m_owner_op;
+    template <typename OpType=GraphOp>
+    OpType *owner_op(void) {
+        return dynamic_cast<OpType *>(m_owner_op);
     }
+    template <typename OpType=GraphOp>
+    const OpType *owner_op(void) const {
+        return dynamic_cast<OpType *>(m_owner_op);
+    }
+
     ssize_t owner_op_index(void) const {
         return m_owner_op_index;
     }
@@ -97,6 +103,9 @@ public:
         if (m_name_initialized) {
             return m_name;
         }
+        return auto_name();
+    }
+    std::string auto_name(void) const {
         std::ostringstream ss;
         ss << op_name() << "@" << this;
         return ss.str();
@@ -106,6 +115,10 @@ public:
         m_name = name;
     }
 
+    template <typename DescT>
+    DescT &desc() {
+        return *(dynamic_cast<DescT *>(m_desc.get()));
+    }
     template <typename DescT>
     const DescT &desc() const {
         return *(dynamic_cast<DescT *>(m_desc.get()));
