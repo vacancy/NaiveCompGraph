@@ -17,7 +17,7 @@ make
 ## Examples
 建议阅读顺序（除了stage1的代码需要指定example id，其他所有示例直接运行`./run.sh`即可观察结果）：
 
-1. `examples/test_dtype/` 理解数据类型（data type系统）。
+1. `examples/test_dtype` 理解数据类型（data type系统）。
 2. `examples/test_tensor` 理解Tensor类型，包括定义，shape，取值。
 3. `examples/test_arith` 理解Op系统，学会创建一个Op（OpAdd）和一个OpContext（执行上下文），进行运算。
 4. `examples/test_graph` 理解Graph系统，学会用`graph.op<OpType>(name, desc, inputs...)`创建Op，用`GraphForwardContext`进行Eval。
