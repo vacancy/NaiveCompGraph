@@ -152,16 +152,16 @@ void CParser::parse_gheader(std::istream &ss) {
     char type;
     ss >> name >> type;
     if (type == 'P') {
-        m_variables.emplace(name, placeholder(name));
+        m_variables[name] = placeholder(name);
     } else if (type == 'V') {
         float value;
         ss >> value;
-        m_variables.emplace(name, variable(name, value));
+        m_variables[name] = variable(name, value);
     } else {
         ncg_assert(type == 'C');
         float value;
         ss >> value;
-        m_variables.emplace(name, constant(name, value));
+        m_variables[name] = constant(name, value);
     }
 }
 
@@ -258,7 +258,7 @@ void CParser::parse_gdef(std::istream &ss) {
             tensor = value.get_tensor();
         }
 
-        m_variables.emplace(name, tensor);
+        m_variables[name] = tensor;
     }
 }
 
@@ -269,7 +269,13 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
         if (verbose)
             std::cerr << "=========Graph Eval==========" << std::endl;
         std::string name; int k;
-        ss >> name >> k;
+        ss >> name;
+        if (ss.eof()) {
+            k = 0;
+        } else {
+            ss >> k;
+        }
+
         GraphForwardContext ctx(m_graph);
         std::string fname; float v;
         while (k--) {
@@ -370,15 +376,19 @@ int main(void) {
     std::cin >> n; std::getline(std::cin, line);
     while (n--)
         parser->parse_gheader(std::cin);
-    parser->debug();
+    // parser->debug();
     std::cin >> n; std::getline(std::cin, line);
     while (n--)
         parser->parse_gdef(std::cin);
-    parser->debug();
+    // parser->debug();
     std::cin >> n; std::getline(std::cin, line);
     std::vector<ncg::TensorPtr> answer_stack;
-    while (n--)
-        parser->parse_geval(std::cin, answer_stack);
+    while (n--) {
+        std::string temp;
+        getline(std::cin, temp);
+        auto ss = std::istringstream(temp);
+        parser->parse_geval(ss, answer_stack);
+    }
 
     return 0;
 }

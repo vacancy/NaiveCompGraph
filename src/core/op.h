@@ -69,7 +69,7 @@ public:
     }
     std::ostringstream &error(const Op *op) {
         m_is_error = true;
-        m_error << op->op_name() << ": ";
+        // m_error << op->op_name() << ": ";
         return m_error;
     }
     void reset_error(void) {

@@ -1,0 +1,29 @@
+4
+t P
+m C -3.3393
+u C 0.0000
+q P
+10
+p = t - m
+y = q / u
+b = q + q
+p = t + q
+x = q / p
+o = m / q
+n = p / p
+v = p - y
+e = q * x
+x = t - v
+13
+EVAL n 2 t 4.5102 q 2.9849
+EVAL n 2 t 0.0000 q 0.0000
+EVAL x 2 t 0.0000 q -2.5762
+EVAL u
+EVAL p 2 t 4.2226 q -4.9082
+EVAL u
+EVAL e 2 t 0.0000 q 4.6920
+EVAL q 1 q -2.2238
+EVAL x 2 t 3.0135 q 0.0000
+EVAL x 2 t 2.5908 q 0.0000
+EVAL q 1 q 0.0000
+EVAL q 1 q -1.7031

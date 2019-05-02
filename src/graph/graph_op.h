@@ -194,7 +194,7 @@ public:
     }
     std::ostringstream &error(const GraphOp *op) {
         m_is_error = true;
-        m_error << op->name() << ": ";
+        // m_error << op->name() << ": ";
         return m_error;
     }
 
