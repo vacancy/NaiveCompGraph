@@ -287,7 +287,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
             std::cout << (outputs[0]->as<DTypeName::Float32>())->data_ptr()[0] << std::endl;
             answer_stack.push_back(outputs[0]);
         } else {
-            std::cerr << "ERROR: " << ctx.error_str() << std::endl;
+            std::cout << "ERROR: " << ctx.error_str() << std::endl;
             answer_stack.push_back(nullptr);
         }
 
