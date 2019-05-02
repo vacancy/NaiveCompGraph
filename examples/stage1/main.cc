@@ -66,16 +66,12 @@ public:
     explicit CValue(const GTensorPtr &tensor) : m_type('t'), v_string(), v_tensor(tensor) {}
 
     char type() const { return m_type; }
-    template <typename T>
-    T get() const;
 
-    template <>
-    std::string get<std::string>() const {
+    std::string get_string() const {
         return v_string;
     }
 
-    template <>
-    GTensorPtr get<GTensorPtr>() const {
+    GTensorPtr get_tensor() const {
         return v_tensor;
     }
 
@@ -253,13 +249,13 @@ void CParser::parse_gdef(std::istream &ss) {
     ncg_assert(m_op_stack[0] == COp::Assign);
 
     if (true) {
-        const auto &name = m_value_stack[0].get<std::string>();
+        const auto &name = m_value_stack[0].get_string();
         const auto &value = m_value_stack[1];
         GTensorPtr tensor;
         if (value.type() == 's') {
-            tensor = m_variables[value.get<std::string>()];
+            tensor = m_variables[value.get_string()];
         } else {
-            tensor = value.get<GTensorPtr>();
+            tensor = value.get_tensor();
         }
 
         m_variables.emplace(name, tensor);
@@ -281,11 +277,12 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
             ctx.feed(fname, scalar(DTypeName::Float32, v));
         }
         auto outputs = ctx.eval({m_variables[name]});
-        answer_stack.push_back(outputs[0]);
         if (ctx.ok()) {
             std::cout << (outputs[0]->as<DTypeName::Float32>())->data_ptr()[0] << std::endl;
+            answer_stack.push_back(outputs[0]);
         } else {
             std::cerr << "ERROR: " << ctx.error_str() << std::endl;
+            answer_stack.push_back(nullptr);
         }
 
         if (verbose) {
@@ -329,15 +326,15 @@ GTensorPtr CParser::pop_value_() {
     auto v = *(m_value_stack.rbegin());
     m_value_stack.pop_back();
     if (v.type() == 's') {
-        return m_variables[v.get<std::string>()];
+        return m_variables[v.get_string()];
     }
-    return v.get<GTensorPtr>();
+    return v.get_tensor();
 }
 std::string CParser::pop_string_() {
     auto v = *(m_value_stack.rbegin());
     m_value_stack.pop_back();
     ncg_assert(v.type() == 's');
-    return v.get<std::string>();
+    return v.get_string();
 }
 
 void CParser::reduce_(void) {

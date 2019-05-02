@@ -223,7 +223,7 @@ public:
 
     template <typename ...Ints>
     inline const ssize_t index(Ints... args) const {
-        ssize_t indices[] {args...};
+        auto indices = {args...};
         ncg_assert(indices.size() == m_desc.dim());
         ssize_t j = 0, i = 0;
         for (auto it = indices.begin(); it != indices.end(); ++it) j += (*it) * m_desc.stride(i++);
