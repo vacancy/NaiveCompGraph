@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef OP_COMMON_H
-#define OP_COMMON_H
+#ifndef CORE_OPS_COMMON_H
+#define CORE_OPS_COMMON_H
 
 namespace ncg {
 
@@ -96,4 +96,4 @@ private:
 
 } /* !namespace ncg */
 
-#endif /* !OP_COMMON_H */
+#endif /* !CORE_OPS_COMMON_H */

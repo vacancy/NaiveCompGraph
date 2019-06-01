@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef CORE_COMMON_H
+#define CORE_COMMON_H
 
 #include <cstdlib>
 #include <cassert>
@@ -126,4 +126,4 @@ do { \
 
 } /* !namespace ncg */
 
-#endif /* !COMMON_H */
+#endif /* !CORE_COMMON_H */

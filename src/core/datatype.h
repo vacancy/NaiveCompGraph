@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef DATATYPE_H
-#define DATATYPE_H
+#ifndef CORE_DATATYPE_H
+#define CORE_DATATYPE_H
 
 namespace ncg {
 
@@ -57,4 +57,4 @@ DEF_DTYPE_CCTYPE(Float64, double);
 
 } /* !namespace ncg */
 
-#endif /* !DATATYPE_H */
+#endif /* !CORE_DATATYPE_H */
