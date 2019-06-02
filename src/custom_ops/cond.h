@@ -13,6 +13,7 @@
 namespace ncg {
 
 class OpCond : public ElemWiseOp {
+public:
     NCG_DEF_OPNAME(OpCond);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {

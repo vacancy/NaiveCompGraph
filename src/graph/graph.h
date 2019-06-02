@@ -8,72 +8,45 @@
 #ifndef GRAPH_GRAPH_H
 #define GRAPH_GRAPH_H
 
+#include "graph/tensor.h"
 #include "graph/op.h"
+
 #include <cstdint>
+#include <string>
+#include <sstream>
+#include <memory>
+#include <vector>
 #include <unordered_set>
+#include <unordered_map>
+#include <type_traits>
 
 namespace ncg {
 
-class GraphTopoSorter {
+class GraphTopoSorter final {
 public:
-    GraphTopoSorter(GraphForwardContext &ctx) : m_ctx(ctx) {}
+    GraphTopoSorter();
 
-    void sort(const GTensorVec &target) {
-        m_sorted.clear();
-        m_visited.clear();
-
-        for (const auto &t : target) {
-            mark_(t);
-        }
-    }
-
-    const std::vector<const GraphOp *> &sorted() const {
-        return m_sorted;
-    }
+    void sort(const GTensorVec &target);
+    const std::vector<const GraphOp *> &sorted() const;
 
 protected:
-    GraphForwardContext &m_ctx;
     std::vector<const GraphOp *> m_sorted;
     std::unordered_set<std::uintptr_t> m_visited;
 
 private:
-    void mark_(const GTensorPtr &t) {
-        auto op = t->owner_op();
-        std::uintptr_t opi = reinterpret_cast<std::uintptr_t>(op);
-
-        if (m_visited.find(opi) != m_visited.end()) {
-            return ;
-        }
-        for (const auto &input : op->inputs()) {
-            mark_(input);
-        }
-        m_sorted.emplace_back(op);
-        m_visited.emplace(opi);
-    }
+    void mark_(const GTensorPtr &t);
 };
 
 class GraphForwardContext : public OpContext {
 public:
-    GraphForwardContext(Graph &graph) : m_graph(graph), m_feed_dict(), m_storage() {}
+    GraphForwardContext(Graph &graph);
 
+    void feed(const std::string &name, TensorPtr tensor);
+    TensorPtr feed_dict(const std::string &name);
     std::vector<TensorPtr> eval(const GTensorVec &);
 
-    void feed(const std::string &name, TensorPtr tensor) {
-        m_feed_dict.emplace(name, tensor);
-    }
-
-    TensorPtr feed_dict(const std::string &name) {
-        auto it = m_feed_dict.find(name);
-        if (it == m_feed_dict.end()) {
-            return nullptr;
-        }
-        return it->second;
-    }
-
     TensorPtr tensor(const GTensorPtr &);
-    void set_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor) {
-        m_storage.emplace(reinterpret_cast<std::uintptr_t>(gtensor.get()), tensor);
-    }
+    void set_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
 
     std::ostringstream &error(const GraphOp *);
 protected:
@@ -88,21 +61,12 @@ public:
     Graph() : m_ops(), m_is_error(false), m_error() {}
     virtual ~Graph() = default;
 
-    bool ok() const {
-        return !m_is_error;
-    }
+    bool ok();
+    bool is_error();
+    std::string error_str();
+    std::ostringstream &error(const GraphOp *op);
 
-    bool is_error() const {
-        return m_is_error;
-    }
-    std::string error_str() const {
-        return m_error.str();
-    }
-    std::ostringstream &error(const GraphOp *op) {
-        m_is_error = true;
-        // m_error << op->name() << ": ";
-        return m_error;
-    }
+    virtual void backward(GTensorPtr loss);
 
     template <typename OpClass, typename... Tensors>
     GOpPtr make_op(OpDescPtr desc, Tensors &&... args) {

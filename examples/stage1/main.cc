@@ -17,13 +17,10 @@
 #include <vector>
 #include <algorithm>
 
-#include "core/tensor.h"
-#include "graph/graph_op.h"
-#include "graph/ops/graph_arith.h"
-#include "graph/ops/graph_netsrc.h"
+#include "ncg.h"
 
-#include "print_op.h"
-#include "cond_op.h"
+#include "custom_ops/print.h"
+#include "custom_ops/cond.h"
 
 namespace {
 

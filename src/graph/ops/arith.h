@@ -8,8 +8,9 @@
 #ifndef GRAPH_OPS_ARITH_H
 #define GRAPH_OPS_ARITH_H
 
-#include "ops/arith.h"
-#include "graph/ops/graph_op_common.h"
+#include "core/ops/arith.h"
+#include "graph/op.h"
+#include "graph/ops/op_common.h"
 
 namespace ncg {
 

@@ -8,7 +8,7 @@
 #ifndef GRAPH_OPS_NETSRC_H
 #define GRAPH_OPS_NETSRC_H
 
-#include "graph/graph_op.h"
+#include "graph/op.h"
 #include <vector>
 
 namespace ncg {

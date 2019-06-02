@@ -8,9 +8,28 @@
 #ifndef GRAPH_OPS_OP_COMMON_H
 #define GRAPH_OPS_OP_COMMON_H
 
-#include "graph/graph_op.h"
+#include "graph/op.h"
 
 namespace ncg {
+
+template <typename OpClass>
+class GraphOpWrapper : public GraphOp {
+public:
+    virtual void forward(GraphForwardContext &ctx) const {
+        TensorVec inputs;
+        for (const auto &gtensor : m_inputs) {
+            inputs.push_back(ctx.tensor(gtensor));
+        }
+        auto op = new OpClass();
+        op->set_desc(m_desc);
+        TensorVec outputs = op->execute(ctx, inputs);
+        ncg_assert(m_outputs.size() == outputs.size());
+        for (ssize_t i = 0; i < m_outputs.size(); ++i) {
+            ctx.set_tensor(m_outputs[i], outputs[i]);
+        }
+        delete op;
+    }
+};
 
 template <typename OpClass>
 class GraphElemWiseOp : public GraphOpWrapper<OpClass> {

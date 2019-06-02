@@ -5,36 +5,45 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "graph_op.h"
-#include "graph_forward_impl.h"
-#include <memory>
+#include "graph/tensor.h"
+#include "graph/op.h"
+#include "graph/graph.h"
+
+#include <sstream>
 
 namespace ncg {
 
-std::ostream & operator << (std::ostream &out, const GraphTensor &tensor) {
-    out << "GTensor(op=" << tensor.m_owner_op->name() << ", op_type=" << tensor.m_owner_op->op_name() << ", index=" << tensor.m_owner_op_index << ")";
-    return out;
+GraphOp::GraphOp() :
+    m_desc(), m_inputs(), m_outputs(),
+    m_initialized(false),
+    m_name(), m_name_initialized(false) {
+    // Pass
 }
 
-std::ostream & operator << (std::ostream &out, const GraphOp &op) {
-    out << op.name() << "(\n\t";
-    for (ssize_t i = 0; i < op.m_inputs.size(); ++i) {
-        out << (i == 0 ? "" : ", \n\t") << *(op.m_inputs[i]);
+std::string GraphOp::name(void) const {
+    if (m_name_initialized) {
+        return m_name;
     }
-    out  << "\n)";
-    return out;
+    return auto_name();
 }
 
-TensorPtr GraphForwardContext::tensor(const GTensorPtr &gtensor) {
-    auto it = m_storage.find(reinterpret_cast<std::uintptr_t>(gtensor.get()));
-    ncg_assert(it != m_storage.end());
-    return it->second;
+std::string GraphOp::auto_name(void) const {
+    std::ostringstream ss;
+    ss << op_name() << "@" << this;
+    return ss.str();
 }
 
-std::ostringstream &GraphForwardContext::error(const GraphOp *op) {
-    m_is_error = true;
-    // m_error << op->name() << ": ";
-    return m_error;
+void GraphOp::set_name(const std::string &name) {
+    m_name_initialized = true;
+    m_name = name;
+}
+
+const GTensorVec &GraphOp::inputs(void) const {
+    return m_inputs;
+}
+
+const GTensorVec &GraphOp::outputs(void) const {
+    return m_outputs;
 }
 
 const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTensorVec &inputs) {
@@ -51,22 +60,17 @@ const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTen
     return m_outputs;
 }
 
-TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
-    TensorVec outputs;
-    auto sorter = std::make_unique<GraphTopoSorter>(*this);
-    sorter->sort(targets);
+GTensorPtr GraphOp::make_tensor(ssize_t index, const TensorDesc &desc) {
+    return GTensorPtr(new GraphTensor(this, index, desc));
+}
 
-    for (const GraphOp *op: sorter->sorted()) {
-        op->forward(*this);
-        if (!ok()) {
-            return outputs;
-        }
+std::ostream & operator << (std::ostream &out, const GraphOp &op) {
+    out << op.name() << "(\n\t";
+    for (ssize_t i = 0; i < op.m_inputs.size(); ++i) {
+        out << (i == 0 ? "" : ", \n\t") << *(op.m_inputs[i]);
     }
-
-    for (const auto &t: targets) {
-        outputs.emplace_back(tensor(t));
-    }
-    return outputs;
+    out  << "\n)";
+    return out;
 }
 
 } /* !namespace ncg */
