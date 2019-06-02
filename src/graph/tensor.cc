@@ -7,6 +7,7 @@
 
 #include "graph/tensor.h"
 #include "graph/op.h"
+#include "graph/ops/arith.h"
 
 namespace ncg {
 
@@ -31,7 +32,7 @@ const TensorDesc &GraphTensor::desc(void) const {
     return m_desc;
 }
 
-GTensorPtr grad(GTensorPtr loss) const {
+GTensorPtr GraphTensor::grad(GTensorPtr loss) const {
     auto tensor = loss.get();
     std::uintptr_t tpi = reinterpret_cast<std::uintptr_t>(tensor);
 
@@ -42,10 +43,22 @@ GTensorPtr grad(GTensorPtr loss) const {
     return it->second;
 }
 
-void set_grad(GTensorPtr loss, GTensorPtr grad) {
+void GraphTensor::set_grad(Graph &graph, GTensorPtr loss, GTensorPtr grad) {
     auto tensor = loss.get();
     std::uintptr_t tpi = reinterpret_cast<std::uintptr_t>(tensor);
-    m_grads.emplace(tpi, grad);
+
+    auto it = m_grads.find(tpi);
+    if (it == m_grads.end()) {
+        m_grads.emplace(tpi, grad);
+    } else {
+        if (grad != nullptr) {
+            if (it->second == nullptr) {
+                m_grads[tpi] = grad;
+            } else {
+                m_grads[tpi] = graph.op<GOpAdd>(nullptr, it->second, grad);
+            }
+        }
+    }
 }
 
 std::ostream & operator << (std::ostream &out, const GraphTensor &tensor) {

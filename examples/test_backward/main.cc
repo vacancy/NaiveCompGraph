@@ -18,19 +18,25 @@ using namespace std;
 int main() {
     Graph graph;
     auto x = graph.op<GOpPlaceholder>("x", OpDescPtr(new GOpPlaceholderDesc(DTypeName::Float32, {})));
-    auto y = graph.op<GOpPlaceholder>("y", OpDescPtr(new GOpPlaceholderDesc(DTypeName::Float32, {})));
-    auto z = graph.op<GOpAdd>(nullptr, x, y);
+    auto z = graph.op<GOpMul>(nullptr, x, x);
+    graph.backward(z);
+    auto gx = x->grad(z);
 
-    cout << *z << endl;
-    cout << *(z->owner_op()) << endl;
+    if (!graph.ok()) {
+        cerr << graph.error_str() << endl;
+        return 0;
+    }
+
+    cout << *gx << endl;
+    cout << *(gx->owner_op()) << endl;
 
     GraphForwardContext ctx(graph);
-    ctx.feed("x", scalar(DTypeName::Float32, 1));
-    ctx.feed("y", scalar(DTypeName::Float32, 2));
-    auto outputs = ctx.eval({z});
+    ctx.feed("x", scalar(DTypeName::Float32, 2));
+    auto outputs = ctx.eval({z, gx});
 
     if (ctx.ok()) {
         cout << *(outputs[0]->as<DTypeName::Float32>()) << endl;
+        cout << *(outputs[1]->as<DTypeName::Float32>()) << endl;
     } else {
         cerr << ctx.error_str() << endl;
     }

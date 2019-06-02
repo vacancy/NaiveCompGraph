@@ -7,11 +7,12 @@
 
 #include "graph/tensor.h"
 #include "graph/op.h"
-#include "graph.h"
+#include "graph/graph.h"
+#include "graph/ops/grad.h"
 
 namespace ncg {
 
-GraphTopoSorter::GraphTopoSorter() {
+GraphTopoSorter::GraphTopoSorter(Graph &graph) : m_graph(graph) {
     // Pass
 }
 
@@ -24,7 +25,7 @@ void GraphTopoSorter::sort(const GTensorVec &target) {
     }
 }
 
-const std::vector<const GraphOp *> &GraphTopoSorter::sorted() const {
+const std::vector<GraphOp *> &GraphTopoSorter::sorted() const {
     return m_sorted;
 }
 
@@ -60,7 +61,7 @@ TensorPtr GraphForwardContext::feed_dict(const std::string &name) {
 
 TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
     TensorVec outputs;
-    auto sorter = std::make_unique<GraphTopoSorter>();
+    auto sorter = std::make_unique<GraphTopoSorter>(m_graph);
     sorter->sort(targets);
 
     for (const GraphOp *op: sorter->sorted()) {
@@ -115,15 +116,14 @@ std::ostringstream &Graph::error(const GraphOp *op) {
 }
 
 void Graph::backward(GTensorPtr loss) {
-    auto sorter = std::make_unique<GraphTopoSorter>();
+    auto sorter = std::make_unique<GraphTopoSorter>(*this);
     sorter->sort({loss});
     const auto &sorted = sorter->sorted();
 
+    loss->set_grad(*this, loss, this->op<GOpGradLoss>(nullptr, loss));
     for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
-        (*it)->backward();
+        (*it)->backward(*this, loss);
     }
-
-    /* TODO:  <02-06-19, Jiayuan Mao> */
 }
 
 } /* !namespace ncg */

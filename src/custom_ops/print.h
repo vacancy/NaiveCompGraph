@@ -38,6 +38,8 @@ public:
         std::cout << "PRINT operator: " << name << " = " << tensor->as<DTypeName::Float32>()->data_ptr()[0] << std::endl;
         ctx.set_tensor(m_outputs[0], tensor);
     }
+
+    NCG_DEF_GOP_NO_GRAD_INLINE;
 };
 
 } /* !namespace ncg */

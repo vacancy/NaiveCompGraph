@@ -9,6 +9,7 @@
 #define GRAPH_OPS_OP_COMMON_H
 
 #include "graph/op.h"
+#include "graph/graph.h"
 
 namespace ncg {
 

@@ -46,6 +46,8 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) = 0;
     virtual void forward(GraphForwardContext &ctx) const = 0;
 
+    virtual void backward(Graph &graph, GTensorPtr loss);
+
     GTensorPtr make_tensor(ssize_t index, const TensorDesc &desc);
     friend std::ostream & operator << (std::ostream &, const GraphOp &);
 
@@ -61,7 +63,17 @@ protected:
 
 #define NCG_DEF_GOPNAME(op_name_) virtual const char *op_name(void) const { return #op_name_; }
 
+#define NCG_DEF_GOP_NO_GRAD(op_name_) void op_name_::backward(Graph &graph, GTensorPtr loss) { \
+    for (auto &tensor : m_inputs) { tensor->set_grad(graph, loss, nullptr); } \
+}
+
+#define NCG_DEF_GOP_NO_GRAD_INLINE virtual void backward(Graph &graph, GTensorPtr loss) { \
+    for (auto &tensor : m_inputs) { tensor->set_grad(graph, loss, nullptr); } \
+}
+
+
 class GraphSingleOutputOp {
+    // Pass
 };
 
 typedef std::shared_ptr<GraphOp> GOpPtr;

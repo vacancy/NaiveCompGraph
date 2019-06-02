@@ -21,6 +21,10 @@ namespace ncg {
 // From graph/op.h
 class GraphOp;
 
+// From graph/graph.h
+class Graph;
+
+
 // Forward define the GTensor type.
 class GraphTensor;
 typedef std::shared_ptr<GraphTensor> GTensorPtr;
@@ -46,7 +50,7 @@ public:
     const TensorDesc &desc(void) const;
 
     GTensorPtr grad(GTensorPtr loss) const;
-    void set_grad(GTensorPtr loss, GTensorPtr grad);
+    void set_grad(Graph &graph, GTensorPtr loss, GTensorPtr grad);
 
     friend std::ostream & operator << (std::ostream &, const GraphTensor &);
 

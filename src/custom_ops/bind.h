@@ -27,6 +27,8 @@ public:
         TensorPtr tensor = ctx.tensor(m_inputs[0]);
         ctx.set_tensor(m_outputs[0], tensor);
     }
+
+    NCG_DEF_GOP_NO_GRAD_INLINE;
 };
 
 } /* !namespace ncg */

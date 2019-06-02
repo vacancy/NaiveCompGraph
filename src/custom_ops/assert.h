@@ -56,6 +56,8 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[0]->desc())};
     }
+
+    NCG_DEF_GOP_NO_GRAD_INLINE;
 };
 
 } /* !namespace ncg */

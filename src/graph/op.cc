@@ -60,6 +60,10 @@ const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTen
     return m_outputs;
 }
 
+void GraphOp::backward(Graph &graph, GTensorPtr loss) {
+    graph.error(this) << "Backward is not implemented for " << op_name();
+}
+
 GTensorPtr GraphOp::make_tensor(ssize_t index, const TensorDesc &desc) {
     return GTensorPtr(new GraphTensor(this, index, desc));
 }

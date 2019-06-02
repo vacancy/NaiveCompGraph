@@ -24,13 +24,14 @@ namespace ncg {
 
 class GraphTopoSorter final {
 public:
-    GraphTopoSorter();
+    GraphTopoSorter(Graph &graph);
 
     void sort(const GTensorVec &target);
-    const std::vector<const GraphOp *> &sorted() const;
+    const std::vector<GraphOp *> &sorted() const;
 
 protected:
-    std::vector<const GraphOp *> m_sorted;
+    Graph &m_graph;
+    std::vector<GraphOp *> m_sorted;
     std::unordered_set<std::uintptr_t> m_visited;
 
 private:
@@ -58,12 +59,12 @@ protected:
 
 class Graph {
 public:
-    Graph() : m_ops(), m_is_error(false), m_error() {}
+    Graph();
     virtual ~Graph() = default;
 
-    bool ok();
-    bool is_error();
-    std::string error_str();
+    bool ok() const;
+    bool is_error() const;
+    std::string error_str() const;
     std::ostringstream &error(const GraphOp *op);
 
     virtual void backward(GTensorPtr loss);

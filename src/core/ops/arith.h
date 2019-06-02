@@ -16,6 +16,7 @@
 namespace ncg {
 
 namespace {
+
 enum class UnaryOpKernelType : int {
     Neg,
     Sin,
@@ -25,6 +26,7 @@ enum class UnaryOpKernelType : int {
     Exp,
     Tanh,
     Sigmoid,
+    Reciprocal,
 };
 
 template <UnaryOpKernelType OpType>
@@ -47,6 +49,7 @@ struct UnaryOpKernel {
         }
 
         switch (OpType) {
+            case UnaryOpKernelType::Neg: b = -a; break;
             case UnaryOpKernelType::Sin: b = std::sin(a); break;
             case UnaryOpKernelType::Cos: b = std::cos(a); break;
             case UnaryOpKernelType::Tan: b = std::tan(a); break;
@@ -60,6 +63,13 @@ struct UnaryOpKernel {
             case UnaryOpKernelType::Exp: b = std::exp(a); break;
             case UnaryOpKernelType::Tanh: b = std::tanh(a); break;
             case UnaryOpKernelType::Sigmoid: b = 1 / (1 + std::exp(-a)); break;
+            case UnaryOpKernelType::Reciprocal:
+                if (a == 0) {
+                    ctx.error(op) << "Division by zero";
+                    break;
+                }
+                b = 1 / a;
+                break;
         }
     }
 };
@@ -111,6 +121,7 @@ struct BinaryOpKernel {
         }
     }
 };
+
 } /* !namespace <anonymous> */
 
 #define DEF_UNARY_ELEMWISE_OP(name) \
@@ -127,6 +138,7 @@ DEF_UNARY_ELEMWISE_OP(Log);
 DEF_UNARY_ELEMWISE_OP(Exp);
 DEF_UNARY_ELEMWISE_OP(Tanh);
 DEF_UNARY_ELEMWISE_OP(Sigmoid);
+DEF_UNARY_ELEMWISE_OP(Reciprocal);
 
 #undef DEF_UNARY_ELEMWISE_OP
 

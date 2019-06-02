@@ -238,5 +238,12 @@ NCG_SWITCH_DTYPE_ALL(dtype, EMPTY_DTYPE_CASE)
     return std::shared_ptr<Tensor>(nullptr);
 }
 
+TensorPtr zeros(DTypeName dtype, const std::vector<size_t> &shape) {
+    return fill(dtype, shape, 0);
+}
+
+TensorPtr ones(DTypeName dtype, const std::vector<size_t> &shape) {
+    return fill(dtype, shape, 1);
+}
 
 } /* !namespace ncg */

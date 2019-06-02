@@ -33,7 +33,7 @@ public:
     DTypeName dtype() const;
 
     size_t dim() const;
-    
+
     std::vector<size_t> shape_vec() const;
     size_t *shape();
     const size_t *shape() const;
@@ -182,6 +182,23 @@ TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage<DT>> stor
 }
 
 TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape);
+
+template <typename ValueT = double>
+TensorPtr fill(DTypeName dtype, const std::vector<size_t> &shape, ValueT value) {
+    auto s = empty(dtype, shape);
+
+#define FILL_DTYPE_CASE(dtype_name) do { \
+    auto s_dtype = s->as<DTypeName::dtype_name>();\
+    for (ssize_t i = 0; i < s_dtype->desc().numel(); ++i) s_dtype->elat(i) = value; \
+} while(0)
+NCG_SWITCH_DTYPE_ALL(dtype, FILL_DTYPE_CASE);
+#undef FILL_DTYPE_CASE
+
+    return s;
+}
+
+TensorPtr zeros(DTypeName dtype, const std::vector<size_t> &shape);
+TensorPtr ones(DTypeName dtype, const std::vector<size_t> &shape);
 
 template <typename ValueT = double>
 TensorPtr scalar(DTypeName dtype, ValueT value = 0) {

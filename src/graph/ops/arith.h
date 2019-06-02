@@ -17,7 +17,8 @@ namespace ncg {
 #define DEF_UNARY_GOP(name) \
 class GOp##name : public GraphUnaryElemWiseOp<Op##name> { \
 public: \
-    NCG_DEF_GOPNAME(GOp##name) \
+    NCG_DEF_GOPNAME(GOp##name); \
+    virtual void backward(Graph &graph, GTensorPtr loss); \
 }
 
 DEF_UNARY_GOP(Neg);
@@ -28,11 +29,15 @@ DEF_UNARY_GOP(Log);
 DEF_UNARY_GOP(Exp);
 DEF_UNARY_GOP(Tanh);
 DEF_UNARY_GOP(Sigmoid);
+DEF_UNARY_GOP(Reciprocal);
+
+#undef DEF_UNARY_GOP
 
 #define DEF_BINARY_GOP(name) \
 class GOp##name : public GraphBinaryElemWiseOp<Op##name> { \
 public: \
-    NCG_DEF_GOPNAME(GOp##name) \
+    NCG_DEF_GOPNAME(GOp##name); \
+    virtual void backward(Graph &graph, GTensorPtr loss); \
 }
 
 DEF_BINARY_GOP(Add);
@@ -45,6 +50,8 @@ DEF_BINARY_GOP(Geq);
 DEF_BINARY_GOP(Leq);
 DEF_BINARY_GOP(Eq);
 DEF_BINARY_GOP(Neq);
+
+#undef DEF_BINARY_GOP
 
 } /* !namespace ncg */
 

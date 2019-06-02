@@ -20,6 +20,10 @@ public:
             graph.error(this) << "NetSrc ops do not take any inputs";
         }
     }
+
+    virtual void backward(Graph &graph, GTensorPtr loss) {
+        // NOP.
+    }
 };
 
 class GOpPlaceholderDesc : public OpDesc {
@@ -90,6 +94,52 @@ public:
     }
     virtual void forward(GraphForwardContext &ctx) const {
         ctx.set_tensor(m_outputs[0], this->template desc<GOpVariableDesc>().tensor);
+    }
+};
+
+class GOpZerosDesc : public OpDesc {
+public:
+    GOpZerosDesc() : desc() {}
+    GOpZerosDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    virtual ~GOpZerosDesc() = default;
+
+    TensorDesc desc;
+};
+
+class GOpZeros: public GraphNetSrcOp {
+public:
+    NCG_DEF_GOPNAME(GOpZeros);
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, this->template desc<GOpZerosDesc>().desc)};
+    }
+    virtual void forward(GraphForwardContext &ctx) const {
+        auto &desc = this->template desc<GOpZerosDesc>().desc;
+        auto tensor = zeros(desc.dtype(), desc.shape_vec());
+        ctx.set_tensor(m_outputs[0], tensor);
+    }
+};
+
+class GOpOnesDesc : public OpDesc {
+public:
+    GOpOnesDesc() : desc() {}
+    GOpOnesDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    virtual ~GOpOnesDesc() = default;
+
+    TensorDesc desc;
+};
+
+class GOpOnes: public GraphNetSrcOp {
+public:
+    NCG_DEF_GOPNAME(GOpZeros);
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, this->template desc<GOpOnesDesc>().desc)};
+    }
+    virtual void forward(GraphForwardContext &ctx) const {
+        auto &desc = this->template desc<GOpOnesDesc>().desc;
+        auto tensor = zeros(desc.dtype(), desc.shape_vec());
+        ctx.set_tensor(m_outputs[0], tensor);
     }
 };
 
