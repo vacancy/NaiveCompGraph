@@ -15,7 +15,7 @@ TensorDesc::TensorDesc() {
     memset(m_stride, 0, sizeof(m_stride));
 }
 
-TensorDesc::TensorDesc(DTypeName dtype, const std::vector<size_t> &shape, const std::vector<size_t> &stride = {}) : m_dtype(dtype) {
+TensorDesc::TensorDesc(DTypeName dtype, const std::vector<size_t> &shape, const std::vector<size_t> &stride) : m_dtype(dtype) {
     memset(m_shape, 0, sizeof(m_shape));
     memset(m_stride, 0, sizeof(m_stride));
 
@@ -60,15 +60,37 @@ std::vector<size_t> TensorDesc::shape_vec(void) const {
     return std::vector<size_t>(m_shape, m_shape + dim());
 }
 
-size_t *TensorDesc::shape(void) { return m_shape; }
-const size_t *TensorDesc::shape(void) const { return m_shape; }
-size_t *TensorDesc::stride(void) { return m_stride; }
-const size_t *TensorDesc::stride(void) const { return m_stride; }
+size_t *TensorDesc::shape(void) {
+    return m_shape;
+}
 
-size_t &TensorDesc::shape(ssize_t i) { return m_shape[i]; }
-size_t TensorDesc::shape(ssize_t i) const { return m_shape[i]; }
-size_t &TensorDesc::stride(ssize_t i) { return m_stride[i]; }
-size_t TensorDesc::stride(ssize_t i) const { return m_stride[i]; }
+const size_t *TensorDesc::shape(void) const {
+    return m_shape;
+}
+
+size_t *TensorDesc::stride(void) {
+    return m_stride;
+}
+
+const size_t *TensorDesc::stride(void) const {
+    return m_stride;
+}
+
+size_t &TensorDesc::shape(ssize_t i) {
+    return m_shape[i];
+}
+
+size_t TensorDesc::shape(ssize_t i) const {
+    return m_shape[i];
+}
+
+size_t &TensorDesc::stride(ssize_t i) {
+    return m_stride[i];
+}
+
+size_t TensorDesc::stride(ssize_t i) const {
+    return m_stride[i];
+}
 
 bool TensorDesc::is_continugous() {
     size_t d = dim();
@@ -110,6 +132,98 @@ std::ostream &operator << (std::ostream &out, const TensorDesc &desc) {
     return out;
 }
 
+template <DTypeName DT>
+TensorStorage<DT>::TensorStorage() : m_data_ptr(nullptr) {
+
+}
+
+template <DTypeName DT>
+TensorStorage<DT>::TensorStorage(cctype *data_ptr, size_t size) : m_data_ptr(data_ptr), m_size(size) {
+
+}
+
+template <DTypeName DT>
+TensorStorage<DT>::TensorStorage(size_t size) : m_size(size) {
+    /* TODO: use aligned allocation. */
+    m_data_ptr = new cctype[size];
+}
+
+template <DTypeName DT>
+TensorStorage<DT>::~TensorStorage() {
+    if (m_data_ptr != nullptr) {
+        delete []m_data_ptr;
+        m_data_ptr = nullptr;
+    }
+}
+
+template <DTypeName DT>
+size_t TensorStorage<DT>::size() const {
+    return m_size;
+}
+
+template <DTypeName DT>
+size_t TensorStorage<DT>::memsize() const {
+    return m_size * sizeof(cctype);
+}
+
+template <DTypeName DT>
+const typename TensorStorage<DT>::cctype *TensorStorage<DT>::data_ptr() const {
+    return m_data_ptr;
+}
+
+template <DTypeName DT>
+typename TensorStorage<DT>::cctype *TensorStorage<DT>::mutable_data_ptr() {
+    return m_data_ptr;
+}
+
+template <DTypeName DT>
+std::ostream &operator << (std::ostream &out, const TensorStorage<DT> &storage) {
+    out << "TensorStorage(dtype=" << DType<DT>::name << ", " << "size=" << storage.m_size << ", data_ptr=" << storage.m_data_ptr << ", values=[";
+    for (ssize_t i = 0; i < std::min(TensorValueMaxPrint, storage.m_size); ++i) {
+        out << (i == 0 ? "" : ", ") << storage.m_data_ptr[i];
+    }
+    if (storage.m_size > TensorValueMaxPrint) {
+        out << ", ...";
+    }
+    out << "])";
+    return out;
+}
+
+#define INSTANTIATE_FUNC(dtype) std::ostream &operator << <DTypeName::dtype> (std::ostream &out, const TensorStorage<DTypeName::dtype> &storage)
+NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
+#undef INSTANTIATE_FUNC
+
+NCG_INSTANTIATE_DTYPE_CLASS_ALL(TensorStorage);
+
+Tensor::Tensor() : m_desc() {}
+Tensor::Tensor(const TensorDesc &desc) : m_desc(desc) {}
+
+TensorDesc &Tensor::desc() {
+    return m_desc;
+}
+
+const TensorDesc &Tensor::desc() const {
+    return m_desc;
+}
+
+template <DTypeName DT>
+TensorImpl<DT> *Tensor::as() {
+    return (dynamic_cast<TensorImpl<DT> *>(this));
+}
+
+#define INSTANTIATE_FUNC(dtype) TensorImpl<DTypeName::dtype> *Tensor::as()
+NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
+#undef INSTANTIATE_FUNC
+
+template <DTypeName DT>
+const TensorImpl<DT> *Tensor::as() const {
+    return (dynamic_cast<const TensorImpl<DT> *>(this));
+}
+
+#define INSTANTIATE_FUNC(dtype) const TensorImpl<DTypeName::dtype> *Tensor::as() const
+NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
+#undef INSTANTIATE_FUNC
+
 TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape) {
     TensorDesc desc(dtype, shape);
 
@@ -120,6 +234,7 @@ TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape) {
     )
 NCG_SWITCH_DTYPE_ALL(dtype, EMPTY_DTYPE_CASE)
 #undef EMPTY_DTYPE_CASE
+
     return std::shared_ptr<Tensor>(nullptr);
 }
 

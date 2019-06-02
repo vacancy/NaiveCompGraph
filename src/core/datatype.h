@@ -54,6 +54,30 @@ DEF_DTYPE_CCTYPE(Float64, double);
     NCG_SWITCH_DTYPE(Float64, MACRO); \
 }
 
+#define NCG_INSTANTIATE_DTYPE(dtype_, MACRO_) template MACRO_(dtype_)
+
+#define NCG_INSTANTIATE_DTYPE_ALL(MACRO) \
+    NCG_INSTANTIATE_DTYPE(Int8, MACRO); \
+    NCG_INSTANTIATE_DTYPE(UInt8, MACRO); \
+    NCG_INSTANTIATE_DTYPE(Int32, MACRO); \
+    NCG_INSTANTIATE_DTYPE(UInt32, MACRO); \
+    NCG_INSTANTIATE_DTYPE(Int64, MACRO); \
+    NCG_INSTANTIATE_DTYPE(UInt64, MACRO); \
+    NCG_INSTANTIATE_DTYPE(Float32, MACRO); \
+    NCG_INSTANTIATE_DTYPE(Float64, MACRO)
+
+#define NCG_INSTANTIATE_DTYPE_CLASS(dtype_, class_name) template class class_name<DTypeName::dtype_>
+
+#define NCG_INSTANTIATE_DTYPE_CLASS_ALL(class_name) \
+    NCG_INSTANTIATE_DTYPE_CLASS(Int8, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(UInt8, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(Int32, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(UInt32, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(Int64, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(UInt64, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(Float32, class_name); \
+    NCG_INSTANTIATE_DTYPE_CLASS(Float64, class_name)
+
 
 } /* !namespace ncg */
 

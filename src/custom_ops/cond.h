@@ -1,15 +1,14 @@
 /*
- * cond_op.h
+ * cond.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
  */
 
-#ifndef COND_OP_H
-#define COND_OP_H
+#ifndef CUSTOM_OPS_COND_H
+#define CUSTOM_OPS_COND_H
 
-#include "ops/op_common.h"
-#include "graph/ops/graph_op_common.h"
+#include "ncg.h"
 
 namespace ncg {
 
@@ -59,4 +58,4 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !COND_OP_H */
+#endif /* !CUSTOM_OPS_COND_H */

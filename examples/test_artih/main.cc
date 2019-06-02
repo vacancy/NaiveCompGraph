@@ -5,9 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "core/tensor.h"
-#include "core/op.h"
-#include "ops/arith.h"
+#include "core.h"
 #include <iostream>
 
 namespace ncg {

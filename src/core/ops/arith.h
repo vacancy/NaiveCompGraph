@@ -5,11 +5,12 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef ARITH_H
-#define ARITH_H
+#ifndef CORE_OPS_ARITH_H
+#define CORE_OPS_ARITH_H
 
 #include "core/op.h"
-#include "ops/op_common.h"
+#include "core/ops/op_common.h"
+
 #include <cmath>
 
 namespace ncg {
@@ -127,6 +128,8 @@ DEF_UNARY_ELEMWISE_OP(Exp);
 DEF_UNARY_ELEMWISE_OP(Tanh);
 DEF_UNARY_ELEMWISE_OP(Sigmoid);
 
+#undef DEF_UNARY_ELEMWISE_OP
+
 #define DEF_BINARY_ELEMWISE_OP(name) \
 class Op##name : public BinaryElemWiseOp<BinaryOpKernel<BinaryOpKernelType::name>> { \
 public: \
@@ -144,6 +147,8 @@ DEF_BINARY_ELEMWISE_OP(Leq);
 DEF_BINARY_ELEMWISE_OP(Eq);
 DEF_BINARY_ELEMWISE_OP(Neq);
 
+#undef DEF_BINARY_ELEMWISE_OP
+
 } /* !namespace ncg */
 
-#endif /* !ARITH_H */
+#endif /* !CORE_OPS_ARITH_H */

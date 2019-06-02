@@ -1,14 +1,14 @@
 /*
- * print_op.h
+ * print.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
  */
 
-#ifndef PRINT_OP_H
-#define PRINT_OP_H
+#ifndef CUSTOM_OPS_PRINT_H
+#define CUSTOM_OPS_PRINT_H
 
-#include "graph/graph_op.h"
+#include "ncg.h"
 #include <string>
 
 namespace ncg {
@@ -42,4 +42,4 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !PRINT_OP_H */
+#endif /* !CUSTOM_OPS_PRINT_H */

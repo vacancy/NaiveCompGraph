@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_NETSRC_H
-#define GRAPH_NETSRC_H
+#ifndef GRAPH_OPS_NETSRC_H
+#define GRAPH_OPS_NETSRC_H
 
 #include "graph/graph_op.h"
 #include <vector>
@@ -95,4 +95,4 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_NETSRC_H */
+#endif /* !GRAPH_OPS_NETSRC_H */

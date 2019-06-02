@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_ARITH_H
-#define GRAPH_ARITH_H
+#ifndef GRAPH_OPS_ARITH_H
+#define GRAPH_OPS_ARITH_H
 
 #include "ops/arith.h"
 #include "graph/ops/graph_op_common.h"
@@ -47,4 +47,4 @@ DEF_BINARY_GOP(Neq);
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_ARITH_H */
+#endif /* !GRAPH_OPS_ARITH_H */

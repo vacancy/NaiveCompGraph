@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_OP_COMMON_H
-#define GRAPH_OP_COMMON_H
+#ifndef GRAPH_OPS_OP_COMMON_H
+#define GRAPH_OPS_OP_COMMON_H
 
 #include "graph/graph_op.h"
 
@@ -64,4 +64,4 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_OP_COMMON_H */
+#endif /* !GRAPH_OPS_OP_COMMON_H */

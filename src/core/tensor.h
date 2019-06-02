@@ -10,6 +10,7 @@
 
 #include "core/common.h"
 #include "core/datatype.h"
+
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
@@ -31,7 +32,8 @@ public:
 
     DTypeName dtype() const;
 
-    size_t dim();
+    size_t dim() const;
+    
     std::vector<size_t> shape_vec() const;
     size_t *shape();
     const size_t *shape() const;
@@ -54,45 +56,30 @@ protected:
     size_t m_stride[TensorMaxDim + 1];
 };
 
+template <DTypeName DT> class TensorStorage;
+template <DTypeName DT> std::ostream &operator << (std::ostream &out, const TensorStorage<DT> &storage);
+
 template <DTypeName DT>
 class TensorStorage {
 public:
     using cctype = typename DType<DT>::cctype;
 
-    TensorStorage() : m_data_ptr(nullptr) {}
-    explicit TensorStorage(cctype *data_ptr, size_t size) : m_data_ptr(data_ptr), m_size(size) {}
-    explicit TensorStorage(size_t size) : m_size(size) {
-        /* TODO: use aligned allocation. */
-        m_data_ptr = new cctype[size];
-    }
+    TensorStorage();
+    explicit TensorStorage(cctype *data_ptr, size_t size);
+    explicit TensorStorage(size_t size);
 
     /* NB: delete the copy-constructor and move-constructor */
     TensorStorage(const TensorStorage<DT> &) = delete;
     TensorStorage(TensorStorage<DT> &&) = delete;
 
-    virtual ~TensorStorage() {
-        if (m_data_ptr != nullptr) {
-            delete []m_data_ptr;
-            m_data_ptr = nullptr;
-        }
-    }
+    virtual ~TensorStorage();
 
-    size_t size() const { return m_size; }
-    size_t memsize() const { return m_size * sizeof(cctype); }
-    const cctype *data_ptr() const { return m_data_ptr; }
-    cctype *mutable_data_ptr() { return m_data_ptr; }
+    size_t size() const;
+    size_t memsize() const;
+    const cctype *data_ptr() const;
+    cctype *mutable_data_ptr();
 
-    inline friend std::ostream &operator << (std::ostream &out, const TensorStorage<DT> &storage) {
-        out << "TensorStorage(dtype=" << DType<DT>::name << ", " << "size=" << storage.m_size << ", data_ptr=" << storage.m_data_ptr << ", values=[";
-        for (ssize_t i = 0; i < std::min(TensorValueMaxPrint, storage.m_size); ++i) {
-            out << (i == 0 ? "" : ", ") << storage.m_data_ptr[i];
-        }
-        if (storage.m_size > TensorValueMaxPrint) {
-            out << ", ...";
-        }
-        out << "])";
-        return out;
-    }
+    friend std::ostream &operator << <> (std::ostream &out, const TensorStorage<DT> &storage);
 
 protected:
     cctype *m_data_ptr;
@@ -104,24 +91,16 @@ class TensorImpl;
 
 class Tensor {
 public:
-    Tensor() : m_desc() {}
-    Tensor(const TensorDesc &desc) : m_desc(desc) {}
+    Tensor();
+    Tensor(const TensorDesc &desc);
     virtual ~Tensor() = default;
 
-    inline TensorDesc &desc(void) {
-        return m_desc;
-    }
-    inline const TensorDesc &desc(void) const {
-        return m_desc;
-    }
+    TensorDesc &desc();
+    const TensorDesc &desc(void) const;
     template <DTypeName DT>
-    inline TensorImpl<DT> *as(void) {
-        return (dynamic_cast<TensorImpl<DT> *>(this));
-    }
+    TensorImpl<DT> *as(void);
     template <DTypeName DT>
-    inline const TensorImpl<DT> *as(void) const {
-        return (dynamic_cast<TensorImpl<DT> *>(this));
-    }
+    const TensorImpl<DT> *as(void) const;
 
 protected:
     TensorDesc m_desc;
@@ -201,6 +180,7 @@ TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage<DT>> stor
     ncg_assert(desc.dtype() == DT);
     return TensorPtr(new TensorImpl<DT>(desc, storage));
 }
+
 TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape);
 
 template <typename ValueT = double>

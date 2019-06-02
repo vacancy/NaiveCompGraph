@@ -11,8 +11,6 @@
 
 namespace ncg {
 
-
-
 } /* !namespace ncg */
 
 template <ncg::DTypeName DT>

@@ -8,6 +8,8 @@
 #ifndef CORE_OPS_COMMON_H
 #define CORE_OPS_COMMON_H
 
+#include "core/op.h"
+
 namespace ncg {
 
 class ElemWiseOp : public Op {
