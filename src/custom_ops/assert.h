@@ -57,7 +57,10 @@ public:
         return {make_tensor(0, inputs[0]->desc())};
     }
 
-    NCG_DEF_GOP_NO_GRAD_INLINE;
+    virtual void backward(Graph &graph, GTensorPtr loss) {
+        auto output_grad = m_outputs[0]->grad(loss);
+        m_inputs[0]->set_grad(graph, loss, output_grad);
+    }
 };
 
 } /* !namespace ncg */

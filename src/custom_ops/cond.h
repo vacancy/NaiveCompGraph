@@ -55,6 +55,15 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[2]->desc())};
     }
+
+    virtual void backward(Graph &graph, GTensorPtr loss) {
+        auto output_grad = m_outputs[0]->grad(loss);
+        auto zero_grad = graph.op<GOpZeros>(OpDescPtr(new GOpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())));
+
+        m_inputs[0]->set_grad(graph, loss, nullptr);
+        m_inputs[1]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, m_inputs[0], output_grad, zero_grad));
+        m_inputs[2]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, m_inputs[0], zero_grad, output_grad));
+    }
 };
 
 } /* !namespace ncg */

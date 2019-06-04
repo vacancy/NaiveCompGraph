@@ -39,7 +39,10 @@ public:
         ctx.set_tensor(m_outputs[0], tensor);
     }
 
-    NCG_DEF_GOP_NO_GRAD_INLINE;
+    virtual void backward(Graph &graph, GTensorPtr loss) {
+        auto output_grad = m_outputs[0]->grad(loss);
+        m_inputs[0]->set_grad(graph, loss, output_grad);
+    }
 };
 
 } /* !namespace ncg */

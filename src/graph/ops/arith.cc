@@ -218,4 +218,40 @@ NCG_DEF_GOP_NO_GRAD(GOpLeq);
 NCG_DEF_GOP_NO_GRAD(GOpEq);
 NCG_DEF_GOP_NO_GRAD(GOpNeq);
 
+void GOpPow::backward(Graph &graph, GTensorPtr loss) {
+    auto output_grad = m_outputs[0]->grad(loss);
+    if (output_grad == nullptr) {
+        m_inputs[0]->set_grad(graph, loss, nullptr);
+    }
+
+    m_inputs[0]->set_grad(graph, loss,
+        graph.op<GOpMul>(nullptr,
+            output_grad,
+            graph.op<GOpMul>(nullptr,
+                m_inputs[1],
+                graph.op<GOpPow>(nullptr,
+                    m_inputs[0],
+                    graph.op<GOpSub>(nullptr,
+                        m_inputs[1],
+                        graph.op<GOpOnes>(
+                            OpDescPtr(new GOpOnesDesc(
+                                m_inputs[1]->desc().dtype(), m_inputs[1]->desc().shape_vec()
+                            ))
+                        )
+                    )
+                )
+            )
+        )
+    );
+    m_inputs[1]->set_grad(graph, loss,
+        graph.op<GOpMul>(nullptr,
+            output_grad,
+            graph.op<GOpMul>(nullptr,
+                m_outputs[0],
+                graph.op<GOpLog>(nullptr, m_inputs[0])
+            )
+        )
+    );
+}
+
 } /* !namespace ncg */

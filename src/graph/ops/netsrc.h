@@ -138,7 +138,7 @@ public:
     }
     virtual void forward(GraphForwardContext &ctx) const {
         auto &desc = this->template desc<GOpOnesDesc>().desc;
-        auto tensor = zeros(desc.dtype(), desc.shape_vec());
+        auto tensor = ones(desc.dtype(), desc.shape_vec());
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };
