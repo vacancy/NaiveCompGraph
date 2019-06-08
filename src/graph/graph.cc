@@ -115,6 +115,15 @@ std::ostringstream &Graph::error(const GraphOp *op) {
     return m_error;
 }
 
+GOpPtr Graph::find_op(const std::string &name) {
+    for (auto &op : m_ops) {
+        if (op->name() == name) {
+            return op;
+        }
+    }
+    return nullptr;
+}
+
 void Graph::backward(GTensorPtr loss) {
     auto sorter = std::make_unique<GraphTopoSorter>(*this);
     sorter->sort({loss});

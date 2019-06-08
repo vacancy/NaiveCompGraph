@@ -10,6 +10,7 @@
 
 #include "graph/op.h"
 #include "graph/graph.h"
+#include <memory>
 
 namespace ncg {
 
@@ -21,14 +22,13 @@ public:
         for (const auto &gtensor : m_inputs) {
             inputs.push_back(ctx.tensor(gtensor));
         }
-        auto op = new OpClass();
+        auto op = std::make_unique<OpClass>();
         op->set_desc(m_desc);
         TensorVec outputs = op->execute(ctx, inputs);
         ncg_assert(m_outputs.size() == outputs.size());
         for (ssize_t i = 0; i < m_outputs.size(); ++i) {
             ctx.set_tensor(m_outputs[i], outputs[i]);
         }
-        delete op;
     }
 };
 

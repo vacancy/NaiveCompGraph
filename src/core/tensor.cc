@@ -6,8 +6,19 @@
  */
 
 #include "tensor.h"
+#include <cstring>
 
 namespace ncg {
+
+std::ostream &operator << (std::ostream &out, const shape_vec &shape) {
+    out << "[";
+    for (ssize_t i = 0; i < shape.size() ; ++i) {
+        if (i != 0) out << ", ";
+        out << shape[i];
+    }
+    out << "]";
+    return out;
+}
 
 TensorDesc::TensorDesc() {
     m_dtype = DTypeName::UInt8;
@@ -15,7 +26,7 @@ TensorDesc::TensorDesc() {
     memset(m_stride, 0, sizeof(m_stride));
 }
 
-TensorDesc::TensorDesc(DTypeName dtype, const std::vector<size_t> &shape, const std::vector<size_t> &stride) : m_dtype(dtype) {
+TensorDesc::TensorDesc(DTypeName dtype, const class shape_vec &shape, const class shape_vec &stride) : m_dtype(dtype) {
     memset(m_shape, 0, sizeof(m_shape));
     memset(m_stride, 0, sizeof(m_stride));
 
@@ -34,14 +45,7 @@ TensorDesc::TensorDesc(DTypeName dtype, const std::vector<size_t> &shape, const 
         for (auto it = stride.begin(); it != stride.end(); ++it) m_stride[i++] = *it;
         m_stride[i++] = TensorShape0;
     } else {
-        if (d == 0) {
-            // pass
-        } else {
-            m_stride[d - 1] = 1;
-            for (ssize_t i = d - 2; i >= 0; --i) {
-                m_stride[i] = m_stride[i + 1] * m_shape[i + 1];
-            }
-        }
+        set_default_stride();
     }
 }
 
@@ -56,40 +60,54 @@ size_t TensorDesc::dim(void) const {
     return i;
 }
 
-std::vector<size_t> TensorDesc::shape_vec(void) const {
-    return std::vector<size_t>(m_shape, m_shape + dim());
+class shape_vec TensorDesc::shape_vec(void) const {
+    return ncg::shape_vec(m_shape, m_shape + dim());
 }
 
-size_t *TensorDesc::shape(void) {
+ssize_t *TensorDesc::shape(void) {
     return m_shape;
 }
 
-const size_t *TensorDesc::shape(void) const {
+const ssize_t *TensorDesc::shape(void) const {
     return m_shape;
 }
 
-size_t *TensorDesc::stride(void) {
+ssize_t *TensorDesc::stride(void) {
     return m_stride;
 }
 
-const size_t *TensorDesc::stride(void) const {
+const ssize_t *TensorDesc::stride(void) const {
     return m_stride;
 }
 
-size_t &TensorDesc::shape(ssize_t i) {
+ssize_t &TensorDesc::shape(ssize_t i) {
     return m_shape[i];
 }
 
-size_t TensorDesc::shape(ssize_t i) const {
+ssize_t TensorDesc::shape(ssize_t i) const {
     return m_shape[i];
 }
 
-size_t &TensorDesc::stride(ssize_t i) {
+ssize_t &TensorDesc::stride(ssize_t i) {
     return m_stride[i];
 }
 
-size_t TensorDesc::stride(ssize_t i) const {
+ssize_t TensorDesc::stride(ssize_t i) const {
     return m_stride[i];
+}
+
+void TensorDesc::set_default_stride() {
+    size_t d = dim();
+
+    memset(m_stride, 0, sizeof(m_stride));
+    if (d == 0) {
+        // pass
+    } else {
+        m_stride[d - 1] = 1;
+        for (ssize_t i = d - 2; i >= 0; --i) {
+            m_stride[i] = m_stride[i + 1] * m_shape[i + 1];
+        }
+    }
 }
 
 bool TensorDesc::is_continugous() {
@@ -108,16 +126,20 @@ bool TensorDesc::is_continugous() {
 size_t TensorDesc::numel() const {
     size_t n = 1;
     for (ssize_t i = 0; i < TensorMaxDim; ++i) {
-        if (m_shape[i] == -1) break;
+        if (m_shape[i] == TensorShape0) break;
         n *= m_shape[i];
     }
     return n;
 }
 
-bool TensorDesc::is_compatible(const TensorDesc &rhs) {
+bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) {
     if (m_dtype != rhs.m_dtype) return false;
     for (ssize_t i = 0; i < TensorMaxDim; ++i) {
-        if (m_shape[i] != rhs.m_shape[i]) return false;
+        if (allow_broadcast) {
+            if (m_shape[i] != rhs.m_shape[i] && !(m_shape[i] == 1 || rhs.m_shape[i] == 1)) return false;
+        } else{
+            if (m_shape[i] != rhs.m_shape[i]) return false;
+        }
     }
     return true;
 }
@@ -154,6 +176,18 @@ TensorStorage<DT>::~TensorStorage() {
         delete []m_data_ptr;
         m_data_ptr = nullptr;
     }
+}
+
+template <DTypeName DT>
+TensorStorage<DT> *TensorStorage<DT>::clone() const {
+    auto ret = new TensorStorage<DT>();
+    if (m_data_ptr != nullptr) {
+        ret->m_data_ptr = new cctype[m_size];
+        ret->m_size = m_size;
+
+        memcpy(ret->m_data_ptr, m_data_ptr, m_size * sizeof(cctype));
+    }
+    return ret;
 }
 
 template <DTypeName DT>
@@ -224,7 +258,7 @@ const TensorImpl<DT> *Tensor::as() const {
 NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
 #undef INSTANTIATE_FUNC
 
-TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape) {
+TensorPtr empty(DTypeName dtype, const shape_vec &shape) {
     TensorDesc desc(dtype, shape);
 
 #define EMPTY_DTYPE_CASE(dtype) return std::shared_ptr<Tensor>( \
@@ -238,11 +272,11 @@ NCG_SWITCH_DTYPE_ALL(dtype, EMPTY_DTYPE_CASE)
     return std::shared_ptr<Tensor>(nullptr);
 }
 
-TensorPtr zeros(DTypeName dtype, const std::vector<size_t> &shape) {
+TensorPtr zeros(DTypeName dtype, const shape_vec &shape) {
     return fill(dtype, shape, 0);
 }
 
-TensorPtr ones(DTypeName dtype, const std::vector<size_t> &shape) {
+TensorPtr ones(DTypeName dtype, const shape_vec &shape) {
     return fill(dtype, shape, 1);
 }
 

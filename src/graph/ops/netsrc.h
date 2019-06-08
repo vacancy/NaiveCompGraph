@@ -29,7 +29,7 @@ public:
 class GOpPlaceholderDesc : public OpDesc {
 public:
     GOpPlaceholderDesc() : desc() {}
-    GOpPlaceholderDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    GOpPlaceholderDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
     virtual ~GOpPlaceholderDesc() = default;
 
     TensorDesc desc;
@@ -100,7 +100,7 @@ public:
 class GOpZerosDesc : public OpDesc {
 public:
     GOpZerosDesc() : desc() {}
-    GOpZerosDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    GOpZerosDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
     virtual ~GOpZerosDesc() = default;
 
     TensorDesc desc;
@@ -123,7 +123,7 @@ public:
 class GOpOnesDesc : public OpDesc {
 public:
     GOpOnesDesc() : desc() {}
-    GOpOnesDesc(DTypeName dtype, const std::vector<size_t> &shape) : desc(dtype, shape) {}
+    GOpOnesDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
     virtual ~GOpOnesDesc() = default;
 
     TensorDesc desc;

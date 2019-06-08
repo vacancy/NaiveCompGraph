@@ -11,4 +11,7 @@
 #include "core/op.h"
 #include "core/ops/op_common.h"
 #include "core/ops/arith.h"
+#include "core/ops/linalg.h"
+#include "core/ops/shape.h"
+// #include "core/ops/slice.h"
 

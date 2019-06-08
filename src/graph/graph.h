@@ -56,7 +56,6 @@ protected:
     std::unordered_map<std::string, TensorPtr> m_feed_dict;
 };
 
-
 class Graph {
 public:
     Graph();
@@ -87,6 +86,8 @@ public:
         m_ops.push_back(op_ptr);
         return op_ptr;
     }
+
+    GOpPtr find_op(const std::string &name);
 
     template <typename OpClass, typename... Tensors>
     typename std::enable_if<std::is_base_of<GraphSingleOutputOp, OpClass>::value, GTensorPtr>::type

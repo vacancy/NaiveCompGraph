@@ -17,65 +17,88 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <limits>
 
 namespace ncg {
 
 const size_t TensorMaxDim = 15;
-const size_t TensorShape0 = static_cast<size_t>(-1);
 const size_t TensorValueMaxPrint = 8;
+
+const ssize_t TensorShape0 = std::numeric_limits<ssize_t>::min();
+const ssize_t NewAxis = std::numeric_limits<ssize_t>::max();
+
+class shape_vec : public std::vector<ssize_t> {
+public:
+    using std::vector<ssize_t>::vector;
+    friend std::ostream &operator << (std::ostream &out, const shape_vec &shape);
+};
 
 class TensorDesc {
 public:
     TensorDesc();
-    TensorDesc(DTypeName dtype, const std::vector<size_t> &shape, const std::vector<size_t> &stride = {});
+    TensorDesc(DTypeName dtype, const class shape_vec &shape, const class shape_vec &stride = {});
     virtual ~TensorDesc() = default;
 
     DTypeName dtype() const;
 
     size_t dim() const;
 
-    std::vector<size_t> shape_vec() const;
-    size_t *shape();
-    const size_t *shape() const;
-    size_t *stride();
-    const size_t *stride() const;
+    class shape_vec shape_vec() const;
+    ssize_t *shape();
+    const ssize_t *shape() const;
+    ssize_t *stride();
+    const ssize_t *stride() const;
 
-    size_t &shape(ssize_t i);
-    size_t shape(ssize_t i) const;
-    size_t &stride(ssize_t i);
-    size_t stride(ssize_t i) const;
+    ssize_t &shape(ssize_t i);
+    ssize_t shape(ssize_t i) const;
+    ssize_t &stride(ssize_t i);
+    ssize_t stride(ssize_t i) const;
+
+    void set_default_stride();
 
     bool is_continugous();
     size_t numel() const;
-    bool is_compatible(const TensorDesc &rhs);
+    bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false);
     friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
 
 protected:
     DTypeName m_dtype;
-    size_t m_shape[TensorMaxDim + 1];
-    size_t m_stride[TensorMaxDim + 1];
+    ssize_t m_shape[TensorMaxDim + 1];
+    ssize_t m_stride[TensorMaxDim + 1];
 };
 
 template <DTypeName DT> class TensorStorage;
 template <DTypeName DT> std::ostream &operator << (std::ostream &out, const TensorStorage<DT> &storage);
 
-template <DTypeName DT>
 class TensorStorage {
+public:
+    TensorStorage() = default;
+    virtual ~TensorStorage() = default;
+
+    virtual TensorStorage *clone() const;
+    virtual size_t size() const;
+    virtual size_t memsize() const;
+};
+
+template <DTypeName DT>
+class TensorStorageImpl : public TensorStorage {
 public:
     using cctype = typename DType<DT>::cctype;
 
-    TensorStorage();
-    explicit TensorStorage(cctype *data_ptr, size_t size);
-    explicit TensorStorage(size_t size);
+    TensorStorageImpl();
+    explicit TensorStorageImpl(cctype *data_ptr, size_t size);
+    explicit TensorStorageImpl(size_t size);
 
     /* NB: delete the copy-constructor and move-constructor */
-    TensorStorage(const TensorStorage<DT> &) = delete;
-    TensorStorage(TensorStorage<DT> &&) = delete;
+    TensorStorageImpl(const TensorStorage<DT> &) = delete;
+    TensorStorageImpl(TensorStorage<DT> &&) = delete;
 
-    virtual ~TensorStorage();
+    virtual ~TensorStorageImpl();
 
-    size_t size() const;
-    size_t memsize() const;
+    virtual TensorStorage *clone() const;
+    virtual size_t size() const;
+    virtual size_t memsize() const;
+
     const cctype *data_ptr() const;
     cctype *mutable_data_ptr();
 
@@ -102,6 +125,17 @@ public:
     template <DTypeName DT>
     const TensorImpl<DT> *as(void) const;
 
+    virtual void make_own_data();
+    virtual void make_contiguous();
+
+    virtual const TensorStorage *storage() const;
+    virtual TensorStorage *storage();
+
+    inline friend std::ostream &operator << (std::ostream &out, const TensorImpl<DT> &tensor) {
+        out << "Tensor(desc=" << tensor.m_desc << ", storage=" << *(tensor.storage())  << ")";
+        return out;
+    }
+
 protected:
     TensorDesc m_desc;
 };
@@ -114,13 +148,39 @@ class TensorImpl : public Tensor {
 public:
     using cctype = typename DType<DT>::cctype;
 
-    TensorImpl() : m_storage() {}
-    explicit TensorImpl(const TensorDesc &desc, std::shared_ptr<TensorStorage<DT>> storage) : Tensor(desc), m_storage(storage) {}
-    explicit TensorImpl(const TensorDesc &desc, TensorStorage<DT> *storage) : Tensor(desc), m_storage(storage) {}
-    explicit TensorImpl(const TensorDesc &desc, cctype *data_ptr) : Tensor(desc) {
-        m_storage = std::make_shared<TensorStorage<DT>>(data_ptr);
+    TensorImpl() : m_storage(), m_data_ptr_offset(0), m_own_data(true) {}
+    explicit TensorImpl(const TensorDesc &desc, std::shared_ptr<TensorStorageImpl<DT>> storage, bool own_data=true, ssize_t data_ptr_offset=0) : Tensor(desc), m_storage(storage), m_own_data(own_data), m_data_ptr_offset(data_ptr_offset) {}
+    explicit TensorImpl(const TensorDesc &desc, TensorStorageImpl<DT> *storage, bool own_data=true, ssize_t data_ptr_offset=0) : Tensor(desc), m_storage(storage), m_own_data(own_data), m_data_ptr_offset(data_ptr_offset) {}
+    explicit TensorImpl(const TensorDesc &desc, cctype *data_ptr, bool own_data=true, ssize_t data_ptr_offset=0) : Tensor(desc), m_own_data(own_data), m_data_ptr_offset(data_ptr_offset) {
+        m_storage = std::make_shared<TensorStorageImpl<DT>>(data_ptr);
     }
     virtual ~TensorImpl() = default;
+
+    virtual void make_own_data() {
+        if (!m_own_data) {
+            if (m_desc.is_continugous()) {
+                m_storage = std::shared_ptr<TensorStorageImpl<DT>>(m_storage->clone());
+                m_own_data = true;
+            } else {
+                make_contiguous();
+            }
+        }
+    }
+
+    virtual void make_contiguous() {
+        if (m_desc.is_continugous()) {
+            return ;
+        } else {
+            auto storage = std::make_shared<TensorStorageImpl<DT>>(m_storage->size());
+            for (ssize_t i = 0; i < m_desc.numel(); ++i) {
+                storage->mutable_data_ptr()[i] = elat(i);
+            }
+
+            m_desc.set_default_stride();
+            m_storage = storage;
+            m_own_data = true;
+        }
+    }
 
     template <typename ...Ints>
     inline const ssize_t index(Ints... args) const {
@@ -156,35 +216,33 @@ public:
         return mutable_data_ptr()[elindex(i)];
     }
 
-    inline const TensorStorage<DT> &storage() const { return *m_storage; }
-    inline TensorStorage<DT> &storage() { return *m_storage; }
-
     inline const cctype *data_ptr() const {
-        return m_storage->data_ptr();
+        return m_storage->data_ptr() + m_data_ptr_offset;
     }
     inline cctype *mutable_data_ptr() {
-        return m_storage->mutable_data_ptr();
+        make_own_data();
+        return m_storage->mutable_data_ptr() + m_data_ptr_offset;
     }
 
-    inline friend std::ostream &operator << (std::ostream &out, const TensorImpl<DT> &tensor) {
-        out << "Tensor(desc=" << tensor.m_desc << ", storage=" << tensor.storage()  << ")";
-        return out;
-    }
+    virtual const TensorStorage *storage() const { return *m_storage; }
+    virtual TensorStorage *storage() { return *m_storage; }
 
 protected:
+    ssize_t m_data_ptr_offset;
+    bool m_own_data;
     std::shared_ptr<TensorStorage<DT>> m_storage;
 };
 
 template <DTypeName DT>
-TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage<DT>> storage) {
+TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage<DT>> storage, bool own_data=true, ssize_t data_ptr_offset=0) {
     ncg_assert(desc.dtype() == DT);
-    return TensorPtr(new TensorImpl<DT>(desc, storage));
+    return TensorPtr(new TensorImpl<DT>(desc, storage, own_data, data_ptr_offset));
 }
 
-TensorPtr empty(DTypeName dtype, const std::vector<size_t> &shape);
+TensorPtr empty(DTypeName dtype, const shape_vec &shape);
 
 template <typename ValueT = double>
-TensorPtr fill(DTypeName dtype, const std::vector<size_t> &shape, ValueT value) {
+TensorPtr fill(DTypeName dtype, const shape_vec &shape, ValueT value) {
     auto s = empty(dtype, shape);
 
 #define FILL_DTYPE_CASE(dtype_name) do { \
@@ -197,8 +255,8 @@ NCG_SWITCH_DTYPE_ALL(dtype, FILL_DTYPE_CASE);
     return s;
 }
 
-TensorPtr zeros(DTypeName dtype, const std::vector<size_t> &shape);
-TensorPtr ones(DTypeName dtype, const std::vector<size_t> &shape);
+TensorPtr zeros(DTypeName dtype, const shape_vec &shape);
+TensorPtr ones(DTypeName dtype, const shape_vec &shape);
 
 template <typename ValueT = double>
 TensorPtr scalar(DTypeName dtype, ValueT value = 0) {

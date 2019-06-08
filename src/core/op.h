@@ -40,6 +40,7 @@ public:
     const DescT &desc() const {
         return *(dynamic_cast<DescT *>(m_desc.get()));
     }
+
     void set_desc(OpDescPtr);
 
     friend std::ostream & operator << (std::ostream &, const Op &);
