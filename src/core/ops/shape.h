@@ -27,8 +27,10 @@ public:
 
 class OpReshape : public Op {
 public:
+    NCG_DEF_OPNAME(OpReshape);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() == 1) {
+        if (inputs.size() != 1) {
             ctx.error(this) << "Reshape op accept only 1 input.";
         }
 
@@ -100,8 +102,10 @@ public:
 
 class OpPermute: public Op {
 public:
+    NCG_DEF_OPNAME(OpPermute);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() == 1) {
+        if (inputs.size() != 1) {
             ctx.error(this) << "Permute op accept only 1 input.";
         }
 
@@ -144,8 +148,10 @@ public:
 
 class OpExpand : public Op {
 public:
+    NCG_DEF_OPNAME(OpExpand);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() == 1) {
+        if (inputs.size() != 1) {
             ctx.error(this) << "Expand op accept only 1 input.";
         }
 
@@ -174,10 +180,14 @@ public:
                 output->desc().stride(i) = 0;
             }
         }
+
+        return {output};
     }
 };
 
 class OpAutoBroadcast : public Op {
+    NCG_DEF_OPNAME(OpAutoBroadcast);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         if (inputs.size() == 0) {
             ctx.error(this) << "AutoBroadcast op accept at least one input.";
@@ -204,7 +214,7 @@ class OpAutoBroadcast : public Op {
         expand_op->set_desc(std::make_shared<OpExpandDesc>(shape));
 
         for (ssize_t i = 0; i < inputs.size(); ++i) {
-            outputs[i] = expand_op->execute(ctx, inputs[i])[0];
+            outputs[i] = expand_op->execute(ctx, {inputs[i]})[0];
         }
 
         return outputs;

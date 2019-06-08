@@ -20,6 +20,9 @@ public:
 };
 
 class OpConcat : public Op {
+public:
+    NCG_DEF_OPNAME(OpConcat);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         if (inputs.size() == 0) {
             ctx.error(this) << "Concat op accept at least one input.";
@@ -41,7 +44,7 @@ class OpConcat : public Op {
         }
     }
 
-    virtual TensorVec execute(OpContext &ctx, const TensorVec &inputs) {
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         auto axis = this->template desc<OpConcatDesc>().axis;
 
         auto shape = inputs[0]->desc().shape_vec();
@@ -50,15 +53,31 @@ class OpConcat : public Op {
         }
 
         auto output = empty(inputs[0]->desc().dtype(), shape);
+
+#define CONCAT_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs, output);
+NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), CONCAT_DTYPE_CASE);
+#undef CONCAT_DTYPE_CASE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void kernel_(const TensorVec &inputs, TensorPtr output) {
+        std::vector<const TensorImpl<DT> *> inputs_dtype;
+        for (auto i : inputs) {
+            inputs_dtype.emplace_back(i->as<DT>());
+        }
+        auto output_dtype = output->as<DT>();
+
+        auto axis = this->template desc<OpConcatDesc>().axis;
         ssize_t index = 0;
-
         for (ssize_t i = 0; i < inputs.size(); ++i) {
-            for (ssize_t j = 0; j < inputs[i]->desc().numel(); ++j) {Q
+            for (ssize_t j = 0; j < inputs[i]->desc().numel(); ++j) {
                 ssize_t k = output->elindex(j) + index * output->desc().stride(axis);
-                output->mutable_data_ptr()[k] = inputs[i]->elat(j);
+                output_dtype->mutable_data_ptr()[k] = inputs_dtype[i]->elat(j);
             }
-
-            index += inputs->[i]->desc().shape(axis);
+            index += inputs[i]->desc().shape(axis);
         }
     }
 };
@@ -75,6 +94,7 @@ public:
 
 class OpSplit : public Op {
 public:
+    NCG_DEF_OPNAME(OpSplit);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         if (inputs.size() != 1) {
@@ -94,7 +114,7 @@ public:
         }
     }
 
-    virtual TensorVec execute(OpContext &ctx, const TensorVec &inputs) {
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         auto input = inputs[0];
         auto &splits = this->template desc<OpSplitDesc>().splits;
         auto axis = this->template desc<OpSplitDesc>().axis;
@@ -102,16 +122,230 @@ public:
 
         ssize_t index = 0;
         for (ssize_t i = 0; i < splits.size(); ++i) {
-            TensorDesc desc(input->desc().dtype(), input->desc().shape(), input->desc().stride());
+            TensorDesc desc(input->desc().dtype(), input->desc().shape_vec(), input->desc().stride_vec());
             desc.shape(axis) = splits[i];
             ssize_t offset = index * desc.stride(axis);
-
             outputs[i] = tensor(desc, input->storage(), false, offset);
+            index += splits[i];
         }
 
         return outputs;
     }
 };
+
+class OpNarrowDesc : public OpDesc {
+public:
+    OpNarrowDesc() : axis(0), start(0), length(0) {}
+    OpNarrowDesc(ssize_t axis, ssize_t start, ssize_t length) : axis(axis), start(start), length(length) {}
+    virtual ~OpNarrowDesc() = default;
+
+    ssize_t axis, start, length;
+};
+
+class OpNarrow : public Op {
+public:
+    NCG_DEF_OPNAME(OpNarrow);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        if (inputs.size() != 1) {
+            ctx.error(this) << "Narrow op accepts only one input.";
+        }
+
+        const auto &desc = this->template desc<OpNarrowDesc>();
+        if (!(inputs[0]->desc().dim() >= desc.axis && inputs[0]->desc().shape(desc.axis) >= desc.start + desc.length)) {
+            ctx.error(this) << "Invalid op range.";
+        }
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto &desc = this->template desc<OpNarrowDesc>();
+
+        auto input = inputs[0];
+        input->make_contiguous();
+
+        auto output_desc = input->desc();
+        output_desc.shape(desc.axis) = desc.length;
+        ssize_t output_data_ptr_offset = input->data_ptr_offset() + output_desc.stride(desc.axis) * desc.start;
+        TensorPtr output = tensor(output_desc, input->storage(), false, output_data_ptr_offset);
+
+        return {output};
+    }
+};
+
+class OpIndexSelectDesc : public OpDesc {
+public:
+    OpIndexSelectDesc() : axis(0) {}
+    OpIndexSelectDesc(ssize_t axis) : axis(axis) {}
+    virtual ~OpIndexSelectDesc() = default;
+
+    ssize_t axis;
+};
+
+class OpIndexSelect : public Op {
+public:
+    NCG_DEF_OPNAME(OpNarrow);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        if (inputs.size() != 2) {
+            ctx.error(this) << "IndexSelect op accepts two inputs.";
+            return ;
+        }
+
+        const auto &desc = this->template desc<OpIndexSelectDesc>();
+        if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
+            ctx.error(this) << "Invalid axis.";
+            return ;
+        }
+        if (inputs[1]->desc().dtype() != DTypeName::Int32 && inputs[1]->desc().dtype() != DTypeName::Int64) {
+            ctx.error(this) << "The dtype of the second input must be Int32 or Int64.";
+            return ;
+        }
+        if (inputs[1]->desc().dim() != 1) {
+            ctx.error(this) << "The dimension of the second input must be one.";
+            return ;
+        }
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        auto axis = this->template desc<OpIndexSelectDesc>().axis;
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape[axis] = inputs[1]->desc().shape(0);
+
+
+        auto output = empty(inputs[0]->desc().dtype(), shape);
+
+        if (inputs[1]->desc().dtype() == DTypeName::Int32) {
+#define INDEXSELECT32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
+NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), INDEXSELECT32_DTYPE_CASE);
+#undef INDEXSELECT32_DTYPE_CASE
+        } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
+#define INDEXSELECT64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
+NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), INDEXSELECT64_DTYPE_CASE);
+#undef INDEXSELECT64_DTYPE_CASE
+        }
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, const TensorImpl<IndexDT> *index, TensorImpl<DT> *output) {
+        auto axis = this->template desc<OpIndexSelectDesc>().axis;
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < output->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / output_default_stride[axis - 1];
+                j2 = (i % output_default_stride[axis - 1]) / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            }
+
+            ssize_t k = static_cast<ssize_t>(index->at(j2));
+            ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + j2 * input_default_stride[axis] + j3;
+
+            output->mutable_elat(i) = input->elat(ii);
+        }
+    }
+};
+
+
+class OpGatherDesc : public OpDesc {
+public:
+    OpGatherDesc() : axis(0) {}
+    OpGatherDesc(ssize_t axis) : axis(axis) {}
+    virtual ~OpGatherDesc() = default;
+
+    ssize_t axis;
+};
+
+class OpGather : public Op {
+public:
+    NCG_DEF_OPNAME(OpNarrow);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        if (inputs.size() != 2) {
+            ctx.error(this) << "Gather op accepts two inputs.";
+            return ;
+        }
+
+        const auto &desc = this->template desc<OpGatherDesc>();
+        if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
+            ctx.error(this) << "Invalid axis.";
+            return ;
+        }
+        if (inputs[1]->desc().dtype() != DTypeName::Int32 && inputs[1]->desc().dtype() != DTypeName::Int64) {
+            ctx.error(this) << "The dtype of the second input must be Int32 or Int64.";
+            return ;
+        }
+        if (inputs[1]->desc().dim() != inputs[0]->desc().dim()) {
+            ctx.error(this) << "The inputs should have the same dimension.";
+            return ;
+        }
+
+        for (ssize_t i = 0; i < inputs[0]->desc().dim(); ++i) {
+            if (i == desc.axis) continue;
+            if (inputs[0]->desc().shape(i) != inputs[1]->desc().shape(i)) {
+                ctx.error(this) << "The inputs should have the same shape except the demanding axis.";
+                return ;
+            }
+        }
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        auto axis = this->template desc<OpGatherDesc>().axis;
+
+        auto output = empty(inputs[0]->desc().dtype(), inputs[1]->desc().shape_vec());
+
+        if (inputs[1]->desc().dtype() == DTypeName::Int32) {
+#define GATHER32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
+NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), GATHER32_DTYPE_CASE);
+#undef GATHER32_DTYPE_CASE
+        } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
+#define GATHER64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
+NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), GATHER64_DTYPE_CASE);
+#undef GATHER64_DTYPE_CASE
+        }
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, const TensorImpl<IndexDT> *index, TensorImpl<DT> *output) {
+        auto axis = this->template desc<OpGatherDesc>().axis;
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < output->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / output_default_stride[axis - 1];
+                j2 = (i % output_default_stride[axis - 1]) / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            }
+
+            ssize_t k = static_cast<ssize_t>(index->elat(i));
+            ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
+
+            output->mutable_elat(i) = input->elat(ii);
+        }
+    }
+};
+
+// gather
 
 } /* !namespace ncg */
 

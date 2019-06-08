@@ -38,7 +38,9 @@ public:
 
     template <typename DescT>
     const DescT &desc() const {
-        return *(dynamic_cast<DescT *>(m_desc.get()));
+        auto p = dynamic_cast<DescT *>(m_desc.get());
+        ncg_assert(p != nullptr);
+        return *p;
     }
 
     void set_desc(OpDescPtr);
