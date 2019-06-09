@@ -80,7 +80,7 @@ private:
 
 class CParser {
 public:
-    CParser() : m_graph(), m_variables(), m_op_stack(), m_value_stack() {}
+    CParser() : m_graph(), m_session(m_graph), m_variables(), m_op_stack(), m_value_stack() {}
     virtual ~CParser() = default;
     void parse_gheader(std::istream &);
     void parse_gdef(std::istream &);
@@ -139,6 +139,7 @@ private:
     std::string pop_string_();
 
     Graph m_graph;
+    Session m_session;
     std::unordered_map<std::string, GTensorPtr> m_variables;
     std::vector<COp> m_op_stack;
     std::vector<CValue> m_value_stack;
@@ -273,7 +274,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
             ss >> k;
         }
 
-        GraphForwardContext ctx(m_graph);
+        GraphForwardContext ctx(m_session);
         std::string fname; float v;
         while (k--) {
             ss >> fname >> v;

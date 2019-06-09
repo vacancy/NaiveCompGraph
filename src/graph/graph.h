@@ -1,5 +1,5 @@
 /*
- * graph_forward_impl.h
+ * graph.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
@@ -36,24 +36,6 @@ protected:
 
 private:
     void mark_(const GTensorPtr &t);
-};
-
-class GraphForwardContext : public OpContext {
-public:
-    GraphForwardContext(Graph &graph);
-
-    void feed(const std::string &name, TensorPtr tensor);
-    TensorPtr feed_dict(const std::string &name);
-    std::vector<TensorPtr> eval(const GTensorVec &);
-
-    TensorPtr tensor(const GTensorPtr &);
-    void set_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
-
-    std::ostringstream &error(const GraphOp *);
-protected:
-    Graph &m_graph;
-    std::unordered_map<std::uintptr_t, TensorPtr> m_storage;
-    std::unordered_map<std::string, TensorPtr> m_feed_dict;
 };
 
 class Graph {
@@ -123,6 +105,39 @@ protected:
     std::ostringstream m_error;
 };
 
+class Session {
+public:
+    Session(Graph &graph);
+
+    Graph &graph();
+    const Graph &graph() const;
+
+    TensorPtr shared_tensor(const GTensorPtr &);
+    void set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
+
+protected:
+    Graph &m_graph;
+    std::unordered_map<std::uintptr_t, TensorPtr> m_shared_tensors;
+};
+
+class GraphForwardContext : public OpContext {
+public:
+    GraphForwardContext(Session &session);
+
+    void feed(const std::string &name, TensorPtr tensor);
+    TensorPtr feed_dict(const std::string &name);
+    std::vector<TensorPtr> eval(const GTensorVec &);
+
+    TensorPtr tensor(const GTensorPtr &);
+    void set_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
+
+    std::ostringstream &error(const GraphOp *);
+
+protected:
+    Session &m_session;
+    std::unordered_map<std::uintptr_t, TensorPtr> m_storage;
+    std::unordered_map<std::string, TensorPtr> m_feed_dict;
+};
 
 } /* !namespace ncg */
 

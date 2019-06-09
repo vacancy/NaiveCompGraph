@@ -58,9 +58,9 @@ public:
     class shape_vec get_default_stride() const;
     void set_default_stride();
 
-    bool is_continugous();
+    bool is_continugous() const;
     size_t numel() const;
-    bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false);
+    bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
     friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
 
 protected:

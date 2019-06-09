@@ -78,6 +78,12 @@ DEF_DTYPE_CCTYPE(Float64, double);
     NCG_INSTANTIATE_DTYPE_CLASS(Float32, class_name); \
     NCG_INSTANTIATE_DTYPE_CLASS(Float64, class_name)
 
+inline const char *get_dtype_name(DTypeName dtype) {
+#define GET_NAME_DTYPE_CASE(dtype_name) return #dtype_name;
+NCG_SWITCH_DTYPE_ALL(dtype, GET_NAME_DTYPE_CASE);
+#undef GET_NAME_DTYPE_CASE
+}
+
 
 } /* !namespace ncg */
 

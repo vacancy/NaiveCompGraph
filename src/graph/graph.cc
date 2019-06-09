@@ -43,7 +43,7 @@ void GraphTopoSorter::mark_(const GTensorPtr &t) {
     m_visited.emplace(opi);
 }
 
-GraphForwardContext::GraphForwardContext(Graph &graph) : m_graph(graph), m_feed_dict(), m_storage() {
+GraphForwardContext::GraphForwardContext(Session &session) : m_session(session), m_feed_dict(), m_storage() {
     // Pass
 }
 
@@ -61,7 +61,7 @@ TensorPtr GraphForwardContext::feed_dict(const std::string &name) {
 
 TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
     TensorVec outputs;
-    auto sorter = std::make_unique<GraphTopoSorter>(m_graph);
+    auto sorter = std::make_unique<GraphTopoSorter>(m_session.graph());
     sorter->sort(targets);
 
     for (const GraphOp *op: sorter->sorted()) {
@@ -134,5 +134,28 @@ void Graph::backward(GTensorPtr loss) {
         (*it)->backward(*this, loss);
     }
 }
+
+Session::Session(Graph &graph) : m_graph(graph) {
+    // pass
+}
+
+Graph &Session::Session::graph() {
+    return m_graph;
+}
+
+const Graph &Session::graph() const {
+    return m_graph;
+}
+
+TensorPtr Session::shared_tensor(const GTensorPtr &gtensor) {
+    auto it = m_shared_tensors.find(reinterpret_cast<std::uintptr_t>(gtensor.get()));
+    ncg_assert(it != m_shared_tensors.end());
+    return it->second;
+}
+
+void Session::set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor) {
+    m_shared_tensors[reinterpret_cast<std::uintptr_t>(gtensor.get())] = tensor;
+}
+
 
 } /* !namespace ncg */

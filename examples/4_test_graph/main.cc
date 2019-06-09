@@ -24,7 +24,8 @@ int main() {
     cout << *z << endl;
     cout << *(z->owner_op()) << endl;
 
-    GraphForwardContext ctx(graph);
+    Session session(graph);
+    GraphForwardContext ctx(session);
     ctx.feed("x", scalar(DTypeName::Float32, 1));
     ctx.feed("y", scalar(DTypeName::Float32, 2));
     auto outputs = ctx.eval({z});

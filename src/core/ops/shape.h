@@ -30,9 +30,12 @@ public:
     NCG_DEF_OPNAME(OpReshape);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 1) {
-            ctx.error(this) << "Reshape op accept only 1 input.";
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+
+#define RESHAPE_INVALID_SHAPE do {\
+    ctx.error(this) << "Invalid target shape " << shape << "; input tensor shape is " << inputs[0]->desc().shape_vec(); \
+    return ; \
+} while (0)
 
         auto &shape = this->template desc<OpReshapeDesc>().shape;
 
@@ -46,26 +49,28 @@ public:
             } else if (shape[i] > 0) {
                 nr_total *= shape[i];
             } else {
-                ctx.error(this) << "Invalid shape " << shape;
+                RESHAPE_INVALID_SHAPE;
             }
         }
 
         if (nr_negative == 1) {
             if (inputs[0]->desc().numel() % nr_total != 0) {
-                ctx.error(this) << "Invalid shape " << shape;
+                RESHAPE_INVALID_SHAPE;
             }
         } else if (nr_negative == 0) {
             if (inputs[0]->desc().numel() != nr_total) {
-                ctx.error(this) << "Invalid shape " << shape;
+                RESHAPE_INVALID_SHAPE;
             }
         } else {
-            ctx.error(this) << "Invalid shape " << shape;
+            RESHAPE_INVALID_SHAPE;
         }
+
+#undef RESHAPE_INVALID_SHAPE
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto input = inputs[0];
         auto shape = this->template desc<OpReshapeDesc>().shape;
-        auto input = inputs[0];
 
         int negative_idx = -1;
         int nr_total = 1;
@@ -83,7 +88,7 @@ public:
             shape[negative_idx] = input->desc().numel() / nr_total;
         }
 
-        input->make_contiguous();
+        inputs[0]->make_contiguous();
         TensorDesc desc(input->desc().dtype(), shape);
         TensorPtr output = tensor(desc, input->storage(), false);
 
@@ -105,9 +110,7 @@ public:
     NCG_DEF_OPNAME(OpPermute);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 1) {
-            ctx.error(this) << "Permute op accept only 1 input.";
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
 
         auto &axes = this->template desc<OpPermuteDesc>().axes;
         std::vector<bool> used(axes.size());
@@ -117,13 +120,14 @@ public:
             if (j >= 0 && j < axes.size() && !used[j]) {
                 used[j] = true;
             } else {
-                ctx.error(this) << "Invalid permute axes " << axes;
+                ctx.error(this) << "Invalid permute axes " << axes << ".";
+                return;
             }
         }
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto input = inputs[0];
+        const auto input = inputs[0];
         auto output = tensor(input->desc(), input->storage(), false);
         auto &axes = this->template desc<OpPermuteDesc>().axes;
 
@@ -151,26 +155,25 @@ public:
     NCG_DEF_OPNAME(OpExpand);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 1) {
-            ctx.error(this) << "Expand op accept only 1 input.";
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
 
-        auto input = inputs[0];
+        const auto input = inputs[0];
         auto &shape = this->template desc<OpExpandDesc>().shape;
 
         if (shape.size() != input->desc().dim()) {
             ctx.error(this) << "Expand op cannot change the dimension.";
+            return;
         }
         for (ssize_t i = 0; i < shape.size(); ++i) {
             if (shape[i] != input->desc().shape(i) && input->desc().shape(i) != 1) {
-                ctx.error(this) << "Invalid expand op, from " << input->desc().shape_vec() << " to " << shape;
-                break;
+                ctx.error(this) << "Invalid target shape " << shape << "; input tensor shape is " << input->desc().shape_vec() << ".";
+                return;
             }
         }
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto input = inputs[0];
+        const auto input = inputs[0];
         auto &shape = this->template desc<OpExpandDesc>().shape;
         auto output = tensor(input->desc(), input->storage(), false);
 
@@ -189,15 +192,8 @@ class OpAutoBroadcast : public Op {
     NCG_DEF_OPNAME(OpAutoBroadcast);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() == 0) {
-            ctx.error(this) << "AutoBroadcast op accept at least one input.";
-        }
-
-        for (ssize_t i = 0; i < inputs.size(); ++i) {
-            if (inputs[i]->desc().dim() != inputs[0]->desc().dim()) {
-                ctx.error(this) << "AutoBroadcast op support same-dimension inputs.";
-            }
-        }
+        NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
+        NCG_OP_CHECK_BROADCASTABLE_SHAPE(ctx, inputs);
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {

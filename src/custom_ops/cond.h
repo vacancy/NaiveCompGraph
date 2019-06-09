@@ -43,7 +43,7 @@ private:
         auto c = inputs[2]->as<DT>();
         auto d = output->as<DT>();
         for (ssize_t i = 0; i < n; ++i) {
-            d->elat(i) = a->elat(i) > 0 ? b->elat(i) : c->elat(i);
+            d->mutable_elat(i) = a->elat(i) > 0 ? b->elat(i) : c->mutable_elat(i);
         }
     }
 };

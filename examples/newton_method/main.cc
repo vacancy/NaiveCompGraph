@@ -38,8 +38,9 @@ void solve() {
     double x_val;
     cin >> x_val;
 
+    Session session(graph);
     for (int i = 0; i < 5; ++i) {
-        GraphForwardContext ctx(graph);
+        GraphForwardContext ctx(session);
         ctx.feed("x", scalar(DTypeName::Float64, x_val));
         auto outputs = ctx.eval({new_x, y, x->grad(y)});
 

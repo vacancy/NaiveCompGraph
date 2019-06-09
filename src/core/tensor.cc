@@ -130,7 +130,7 @@ void TensorDesc::set_default_stride() {
     }
 }
 
-bool TensorDesc::is_continugous() {
+bool TensorDesc::is_continugous() const {
     size_t d = dim();
     if (d == 0) {
         return true;
@@ -152,8 +152,7 @@ size_t TensorDesc::numel() const {
     return n;
 }
 
-bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) {
-    if (m_dtype != rhs.m_dtype) return false;
+bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
     for (ssize_t i = 0; i < TensorMaxDim; ++i) {
         if (allow_broadcast) {
             if (m_shape[i] != rhs.m_shape[i] && !(m_shape[i] == 1 || rhs.m_shape[i] == 1)) return false;
@@ -183,7 +182,7 @@ DTypeName TensorStorage::dtype() const {
 }
 
 std::ostream &operator << (std::ostream &out, const TensorStorage &storage) {
-    #define COUT_STORAGE_DTYPE_CASE(dtype) out << dynamic_cast<const TensorStorageImpl<DTypeName::dtype> &>(storage);
+    #define COUT_STORAGE_DTYPE_CASE(dtype_name) out << dynamic_cast<const TensorStorageImpl<DTypeName::dtype_name> &>(storage);
     NCG_SWITCH_DTYPE_ALL(storage.dtype(), COUT_STORAGE_DTYPE_CASE)
     #undef COUT_STORAGE_DTYPE_CASE
     return out;
@@ -263,7 +262,7 @@ std::ostream &operator << (std::ostream &out, const TensorStorageImpl<DT> &stora
     return out;
 }
 
-#define INSTANTIATE_FUNC(dtype) std::ostream &operator << <DTypeName::dtype> (std::ostream &out, const TensorStorageImpl<DTypeName::dtype> &storage)
+#define INSTANTIATE_FUNC(dtype_name) std::ostream &operator << <DTypeName::dtype_name> (std::ostream &out, const TensorStorageImpl<DTypeName::dtype_name> &storage)
 NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
 #undef INSTANTIATE_FUNC
 
@@ -285,7 +284,7 @@ TensorImpl<DT> *Tensor::as() {
     return (dynamic_cast<TensorImpl<DT> *>(this));
 }
 
-#define INSTANTIATE_FUNC(dtype) TensorImpl<DTypeName::dtype> *Tensor::as()
+#define INSTANTIATE_FUNC(dtype_name) TensorImpl<DTypeName::dtype_name> *Tensor::as()
 NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
 #undef INSTANTIATE_FUNC
 
@@ -294,7 +293,7 @@ const TensorImpl<DT> *Tensor::as() const {
     return (dynamic_cast<const TensorImpl<DT> *>(this));
 }
 
-#define INSTANTIATE_FUNC(dtype) const TensorImpl<DTypeName::dtype> *Tensor::as() const
+#define INSTANTIATE_FUNC(dtype_name) const TensorImpl<DTypeName::dtype_name> *Tensor::as() const
 NCG_INSTANTIATE_DTYPE_ALL(INSTANTIATE_FUNC);
 #undef INSTANTIATE_FUNC
 
@@ -316,7 +315,7 @@ ssize_t Tensor::data_ptr_offset() const {
 
 
 std::ostream &operator << (std::ostream &out, const Tensor &tensor) {
-#define COUT_TENSOR_DTYPE_CASE(dtype) out << dynamic_cast<const TensorImpl<DTypeName::dtype> &>(tensor);
+#define COUT_TENSOR_DTYPE_CASE(dtype_name) out << dynamic_cast<const TensorImpl<DTypeName::dtype_name> &>(tensor);
 NCG_SWITCH_DTYPE_ALL(tensor.desc().dtype(), COUT_TENSOR_DTYPE_CASE)
 #undef COUT_TENSOR_DTYPE_CASE
     return out;
@@ -326,7 +325,7 @@ TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage,
     ncg_assert(desc.dtype() == storage->dtype());
     Tensor *tensor = nullptr;
 
-#define TENSOR_DTYPE_CASE(dtype) tensor = static_cast<Tensor *>(new TensorImpl<DTypeName::dtype>(desc, storage, own_data, data_ptr_offset));
+#define TENSOR_DTYPE_CASE(dtype_name) tensor = static_cast<Tensor *>(new TensorImpl<DTypeName::dtype_name>(desc, storage, own_data, data_ptr_offset));
 NCG_SWITCH_DTYPE_ALL(desc.dtype(), TENSOR_DTYPE_CASE)
 #undef TENSOR_DTYPE_CASE
 
@@ -336,9 +335,9 @@ NCG_SWITCH_DTYPE_ALL(desc.dtype(), TENSOR_DTYPE_CASE)
 TensorPtr empty(DTypeName dtype, const shape_vec &shape) {
     TensorDesc desc(dtype, shape);
 
-#define EMPTY_DTYPE_CASE(dtype) return std::shared_ptr<Tensor>( \
-        static_cast<Tensor *>(new TensorImpl<DTypeName::dtype>(\
-            desc, new TensorStorageImpl<DTypeName::dtype>(desc.numel()) \
+#define EMPTY_DTYPE_CASE(dtype_name) return std::shared_ptr<Tensor>( \
+        static_cast<Tensor *>(new TensorImpl<DTypeName::dtype_name>(\
+            desc, new TensorStorageImpl<DTypeName::dtype_name>(desc.numel()) \
         )) \
     )
 NCG_SWITCH_DTYPE_ALL(dtype, EMPTY_DTYPE_CASE)

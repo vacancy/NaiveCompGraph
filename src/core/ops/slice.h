@@ -8,6 +8,9 @@
 #ifndef SLICE_H
 #define SLICE_H
 
+#include "core/op.h"
+#include "core/ops/op_common.h"
+
 namespace ncg {
 
 class OpConcatDesc : public OpDesc {
@@ -24,20 +27,20 @@ public:
     NCG_DEF_OPNAME(OpConcat);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() == 0) {
-            ctx.error(this) << "Concat op accept at least one input.";
-        }
+        NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
+        NCG_OP_CHECK_COMPATIBLE_DTYPE(ctx, inputs);
+        NCG_OP_CHECK_COMPATIBLE_DIM(ctx, inputs);
 
         auto axis = this->template desc<OpConcatDesc>().axis;
 
         for (ssize_t i = 0; i < inputs.size(); ++i) {
-            if (inputs[i]->desc().dim() != inputs[0]->desc().dim()) {
-                ctx.error(this) << "Concat op support same-dimension inputs.";
-            }
             for (ssize_t j = 0; j < inputs[0]->desc().dim(); ++j) {
                 if (j != axis) {
                     if (inputs[i]->desc().shape(j) != inputs[0]->desc().shape(j)) {
-                        ctx.error(this) << "Concat op: inputs shape can only differ along the " << axis << " dimension.";
+                        auto &err_stream = ctx.error(this) << "Concat op: inputs shape can only differ along the " << axis << " dimension; but got: ";
+                        NCG_OP_CHECK_COMPATIBLE_SHAPE_PRINT(ctx, inputs, err_stream);
+                        err_stream << ".";
+                        return;
                     }
                 }
             }
@@ -97,9 +100,7 @@ public:
     NCG_DEF_OPNAME(OpSplit);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 1) {
-            ctx.error(this) << "Split op accepts only one input.";
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
 
         auto &splits = this->template desc<OpSplitDesc>().splits;
         auto axis = this->template desc<OpSplitDesc>().axis;
@@ -111,11 +112,12 @@ public:
 
         if (nr_total != inputs[0]->desc().shape(axis)) {
             ctx.error(this) << "Split values are not consistent with the shape.";
+            return;
         }
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto input = inputs[0];
+        const auto input = inputs[0];
         auto &splits = this->template desc<OpSplitDesc>().splits;
         auto axis = this->template desc<OpSplitDesc>().axis;
         TensorVec outputs(splits.size());
@@ -147,13 +149,12 @@ public:
     NCG_DEF_OPNAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 1) {
-            ctx.error(this) << "Narrow op accepts only one input.";
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
 
         const auto &desc = this->template desc<OpNarrowDesc>();
         if (!(inputs[0]->desc().dim() >= desc.axis && inputs[0]->desc().shape(desc.axis) >= desc.start + desc.length)) {
-            ctx.error(this) << "Invalid op range.";
+            ctx.error(this) << "Invalid input range: start = " << desc.start << ", length = " << desc.length << ", input tensor size = " << inputs[0]->desc().shape(desc.axis) << ".";
+            return;
         }
     }
 
@@ -186,23 +187,14 @@ public:
     NCG_DEF_OPNAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 2) {
-            ctx.error(this) << "IndexSelect op accepts two inputs.";
-            return ;
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+        NCG_OP_CHECK_INPUT_DTYPE_INT(ctx, inputs, 1);
+        NCG_OP_CHECK_INPUT_DIM(ctx, inputs, 1, 1);
 
         const auto &desc = this->template desc<OpIndexSelectDesc>();
         if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
             ctx.error(this) << "Invalid axis.";
-            return ;
-        }
-        if (inputs[1]->desc().dtype() != DTypeName::Int32 && inputs[1]->desc().dtype() != DTypeName::Int64) {
-            ctx.error(this) << "The dtype of the second input must be Int32 or Int64.";
-            return ;
-        }
-        if (inputs[1]->desc().dim() != 1) {
-            ctx.error(this) << "The dimension of the second input must be one.";
-            return ;
+            return;
         }
     }
 
@@ -271,30 +263,21 @@ public:
     NCG_DEF_OPNAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        if (inputs.size() != 2) {
-            ctx.error(this) << "Gather op accepts two inputs.";
-            return ;
-        }
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+        NCG_OP_CHECK_INPUT_DTYPE_INT(ctx, inputs, 1);
+        NCG_OP_CHECK_COMPATIBLE_DIM(ctx, inputs);
 
-        const auto &desc = this->template desc<OpGatherDesc>();
+        const auto &desc = this->template desc<OpIndexSelectDesc>();
         if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
             ctx.error(this) << "Invalid axis.";
-            return ;
-        }
-        if (inputs[1]->desc().dtype() != DTypeName::Int32 && inputs[1]->desc().dtype() != DTypeName::Int64) {
-            ctx.error(this) << "The dtype of the second input must be Int32 or Int64.";
-            return ;
-        }
-        if (inputs[1]->desc().dim() != inputs[0]->desc().dim()) {
-            ctx.error(this) << "The inputs should have the same dimension.";
-            return ;
+            return;
         }
 
         for (ssize_t i = 0; i < inputs[0]->desc().dim(); ++i) {
             if (i == desc.axis) continue;
             if (inputs[0]->desc().shape(i) != inputs[1]->desc().shape(i)) {
                 ctx.error(this) << "The inputs should have the same shape except the demanding axis.";
-                return ;
+                return;
             }
         }
     }

@@ -38,7 +38,8 @@ int main() {
 
     cout << *gx1 << ", " << *gx2 << ", " << *gx3 << endl;
 
-    GraphForwardContext ctx(graph);
+    Session session(graph);
+    GraphForwardContext ctx(session);
     ctx.feed("x", scalar(DTypeName::Float32, 3));
     auto outputs = ctx.eval({gx1, gx2, gx3});
 
