@@ -303,7 +303,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
         std::string name; float value;
         ss >> name >> value;
         auto variable_op =  m_variables[name]->owner_op<GOpVariable>();
-        variable_op->set_value(scalar(DTypeName::Float32, value));
+        variable_op->set_value(m_session, scalar(DTypeName::Float32, value));
 
         answer_stack.emplace_back(scalar(DTypeName::Float32));
     } else if (op == "SETANSWER") {
@@ -311,7 +311,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
         ss >> name >> k;
         auto variable_op =  m_variables[name]->owner_op<GOpVariable>();
         auto value = answer_stack[k - 1];
-        variable_op->set_value(value);
+        variable_op->set_value(m_session, value);
 
         answer_stack.emplace_back(scalar(DTypeName::Float32));
     }

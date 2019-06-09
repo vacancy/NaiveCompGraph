@@ -112,7 +112,8 @@ public:
     Graph &graph();
     const Graph &graph() const;
 
-    TensorPtr shared_tensor(const GTensorPtr &);
+    bool is_shared_tensor_initialized(const GTensorPtr &) const;
+    TensorPtr shared_tensor(const GTensorPtr &) const;
     void set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
 
 protected:
@@ -123,6 +124,9 @@ protected:
 class GraphForwardContext : public OpContext {
 public:
     GraphForwardContext(Session &session);
+
+    Session &session();
+    const Session &session() const;
 
     void feed(const std::string &name, TensorPtr tensor);
     TensorPtr feed_dict(const std::string &name);

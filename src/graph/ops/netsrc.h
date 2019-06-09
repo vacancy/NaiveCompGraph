@@ -85,15 +85,17 @@ class GOpVariable : public GraphNetSrcOp {
 public:
     NCG_DEF_GOPNAME(GOpVariable);
 
-    void set_value(const TensorPtr &tensor) {
-        /* TODO: Check shape and dtype. */
-        this->template desc<GOpVariableDesc>().tensor = tensor;
+    void set_value(Session &session, const TensorPtr &tensor) {
+        session.set_shared_tensor(m_outputs[0], tensor);
     }
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, this->template desc<GOpVariableDesc>().tensor->desc())};
     }
     virtual void forward(GraphForwardContext &ctx) const {
-        ctx.set_tensor(m_outputs[0], this->template desc<GOpVariableDesc>().tensor);
+        if (!ctx.session().is_shared_tensor_initialized(m_outputs[0])) {
+            ctx.session().set_shared_tensor(m_outputs[0], this->template desc<GOpVariableDesc>().tensor);
+        }
+        ctx.set_tensor(m_outputs[0], ctx.session().shared_tensor(m_outputs[0]));
     }
 };
 
