@@ -5,8 +5,9 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_DATATYPE_H
-#define CORE_DATATYPE_H
+#pragma once
+
+#include "core/common.h"
 
 namespace ncg {
 
@@ -41,22 +42,22 @@ DEF_DTYPE_CCTYPE(UInt64, unsigned long long);
 DEF_DTYPE_CCTYPE(Float32, float);
 DEF_DTYPE_CCTYPE(Float64, double);
 
-#define NCG_SWITCH_DTYPE(dtype_, MACRO_) case DTypeName::dtype_: MACRO_(dtype_); break;
+#define NCG_DTYPE_SWITCH(dtype_, MACRO_) case DTypeName::dtype_: MACRO_(dtype_); break;
 
-#define NCG_SWITCH_DTYPE_ALL(dtype_var, MACRO) switch(dtype_var) { \
-    NCG_SWITCH_DTYPE(Int8, MACRO); \
-    NCG_SWITCH_DTYPE(UInt8, MACRO); \
-    NCG_SWITCH_DTYPE(Int32, MACRO); \
-    NCG_SWITCH_DTYPE(UInt32, MACRO); \
-    NCG_SWITCH_DTYPE(Int64, MACRO); \
-    NCG_SWITCH_DTYPE(UInt64, MACRO); \
-    NCG_SWITCH_DTYPE(Float32, MACRO); \
-    NCG_SWITCH_DTYPE(Float64, MACRO); \
+#define NCG_DTYPE_SWITCH_ALL(dtype_var, MACRO) switch(dtype_var) { \
+    NCG_DTYPE_SWITCH(Int8, MACRO); \
+    NCG_DTYPE_SWITCH(UInt8, MACRO); \
+    NCG_DTYPE_SWITCH(Int32, MACRO); \
+    NCG_DTYPE_SWITCH(UInt32, MACRO); \
+    NCG_DTYPE_SWITCH(Int64, MACRO); \
+    NCG_DTYPE_SWITCH(UInt64, MACRO); \
+    NCG_DTYPE_SWITCH(Float32, MACRO); \
+    NCG_DTYPE_SWITCH(Float64, MACRO); \
 }
 
 #define NCG_INSTANTIATE_DTYPE(dtype_, MACRO_) template MACRO_(dtype_)
 
-#define NCG_INSTANTIATE_DTYPE_ALL(MACRO) \
+#define NCG_DTYPE_INSTANTIATE_ALL(MACRO) \
     NCG_INSTANTIATE_DTYPE(Int8, MACRO); \
     NCG_INSTANTIATE_DTYPE(UInt8, MACRO); \
     NCG_INSTANTIATE_DTYPE(Int32, MACRO); \
@@ -66,25 +67,24 @@ DEF_DTYPE_CCTYPE(Float64, double);
     NCG_INSTANTIATE_DTYPE(Float32, MACRO); \
     NCG_INSTANTIATE_DTYPE(Float64, MACRO)
 
-#define NCG_INSTANTIATE_DTYPE_CLASS(dtype_, class_name) template class class_name<DTypeName::dtype_>
+#define NCG_DTYPE_INSTANTIATE_CLASS(dtype_, class_name) template class class_name<DTypeName::dtype_>
 
-#define NCG_INSTANTIATE_DTYPE_CLASS_ALL(class_name) \
-    NCG_INSTANTIATE_DTYPE_CLASS(Int8, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(UInt8, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(Int32, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(UInt32, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(Int64, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(UInt64, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(Float32, class_name); \
-    NCG_INSTANTIATE_DTYPE_CLASS(Float64, class_name)
+#define NCG_DTYPE_INSTANTIATE_CLASS_ALL(class_name) \
+    NCG_DTYPE_INSTANTIATE_CLASS(Int8, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(UInt8, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(Int32, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(UInt32, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(Int64, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(UInt64, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(Float32, class_name); \
+    NCG_DTYPE_INSTANTIATE_CLASS(Float64, class_name)
 
 inline const char *get_dtype_name(DTypeName dtype) {
 #define GET_NAME_DTYPE_CASE(dtype_name) return #dtype_name;
-NCG_SWITCH_DTYPE_ALL(dtype, GET_NAME_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(dtype, GET_NAME_DTYPE_CASE);
 #undef GET_NAME_DTYPE_CASE
 }
 
 
 } /* !namespace ncg */
 
-#endif /* !CORE_DATATYPE_H */

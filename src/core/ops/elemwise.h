@@ -1,5 +1,5 @@
 /*
- * arith.h
+ * elemwise.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
@@ -9,11 +9,85 @@
 #define CORE_OPS_ARITH_H
 
 #include "core/op.h"
-#include "core/ops/op_common.h"
 
 #include <cmath>
 
 namespace ncg {
+
+class ElemWiseOp : public Op {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
+        NCG_OP_CHECK_COMPATIBLE_DTYPE(ctx, inputs);
+        NCG_OP_CHECK_COMPATIBLE_SHAPE(ctx, inputs);
+    }
+};
+
+template <typename OpKernel>
+class UnaryElemWiseOp : public ElemWiseOp {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        ElemWiseOp::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
+
+#define UNARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
+#undef UNARY_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto kernel = OpKernel();
+        auto a = inputs[0]->as<DT>();
+        auto b = output->as<DT>();
+        for (ssize_t i = 0; i < n; ++i) {
+            kernel.template compute<DT>(ctx, this, a->elat(i), b->mutable_elat(i));
+        }
+    }
+};
+
+template <typename OpKernel>
+class BinaryElemWiseOp : public ElemWiseOp {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        ElemWiseOp::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        size_t n = inputs[0]->desc().numel();
+        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
+
+#define BINARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
+#undef BINARY_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto kernel = OpKernel();
+        auto a = inputs[0]->as<DT>();
+        auto b = inputs[1]->as<DT>();
+        auto c = output->as<DT>();
+        for (ssize_t i = 0; i < n; ++i) {
+            kernel.template compute<DT>(ctx, this, a->elat(i), b->elat(i), c->mutable_elat(i));
+        }
+    }
+};
 
 namespace {
 
@@ -129,7 +203,7 @@ struct BinaryOpKernel {
 #define DEF_UNARY_ELEMWISE_OP(name) \
 class Op##name : public UnaryElemWiseOp<UnaryOpKernel<UnaryOpKernelType::name>> { \
 public: \
-    NCG_DEF_OPNAME(Op##name); \
+    NCG_OP_DEF_NAME(Op##name); \
 }
 
 DEF_UNARY_ELEMWISE_OP(Neg);
@@ -147,7 +221,7 @@ DEF_UNARY_ELEMWISE_OP(Reciprocal);
 #define DEF_BINARY_ELEMWISE_OP(name) \
 class Op##name : public BinaryElemWiseOp<BinaryOpKernel<BinaryOpKernelType::name>> { \
 public: \
-    NCG_DEF_OPNAME(Op##name); \
+    NCG_OP_DEF_NAME(Op##name); \
 }
 
 DEF_BINARY_ELEMWISE_OP(Add);

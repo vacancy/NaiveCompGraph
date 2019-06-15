@@ -5,11 +5,10 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_GRAPH_H
-#define GRAPH_GRAPH_H
+#pragma once
 
+#include "core/common.h"
 #include "graph/tensor.h"
-#include "graph/op.h"
 
 #include <cstdint>
 #include <string>
@@ -21,6 +20,10 @@
 #include <type_traits>
 
 namespace ncg {
+
+class GraphOp;
+class GraphSingleOutputOp;
+typedef std::shared_ptr<GraphOp> GOpPtr;
 
 class GraphTopoSorter final {
 public:
@@ -38,14 +41,11 @@ private:
     void mark_(const GTensorPtr &t);
 };
 
-class Graph {
+class Graph : public RuntimeContext {
 public:
     Graph();
     virtual ~Graph() = default;
 
-    bool ok() const;
-    bool is_error() const;
-    std::string error_str() const;
     std::ostringstream &error(const GraphOp *op);
 
     virtual void backward(GTensorPtr loss);
@@ -101,8 +101,6 @@ public:
 
 protected:
     std::vector<GOpPtr> m_ops;
-    bool m_is_error;
-    std::ostringstream m_error;
 };
 
 class Session {
@@ -145,4 +143,3 @@ protected:
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_GRAPH_H */

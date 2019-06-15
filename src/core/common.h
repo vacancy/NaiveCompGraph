@@ -5,13 +5,15 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_COMMON_H
-#define CORE_COMMON_H
+#pragma once
 
 #include <cstdlib>
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <iostream>
+#include <sstream>
 #include <typeinfo>
 
 namespace ncg {
@@ -124,6 +126,22 @@ do { \
 
 // End Assertion }}
 
+class RuntimeContext {
+public:
+    RuntimeContext() : m_is_error(false), m_error() {}
+    virtual ~RuntimeContext() = default;
+
+    bool ok() const { return !m_is_error; }
+    bool is_error() const { return m_is_error; }
+    std::ostringstream &error() { return m_error; }
+
+    std::string error_str() const { return m_error.str(); }
+    void reset_error() { m_is_error = false; m_error.clear(); }
+
+private:
+    bool m_is_error;
+    std::ostringstream m_error;
+};
+
 } /* !namespace ncg */
 
-#endif /* !CORE_COMMON_H */

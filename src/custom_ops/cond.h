@@ -14,7 +14,7 @@ namespace ncg {
 
 class OpCond : public ElemWiseOp {
 public:
-    NCG_DEF_OPNAME(OpCond);
+    NCG_OP_DEF_NAME(OpCond);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         ElemWiseOp::check_inputs(ctx, inputs);
@@ -58,7 +58,7 @@ public:
 
     virtual void backward(Graph &graph, GTensorPtr loss) {
         auto output_grad = m_outputs[0]->grad(loss);
-        auto zero_grad = graph.op<GOpZeros>(OpDescPtr(new GOpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())));
+        auto zero_grad = graph.op<GOpZeros>(OpDescPtr(new OpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())));
 
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, m_inputs[0], output_grad, zero_grad));

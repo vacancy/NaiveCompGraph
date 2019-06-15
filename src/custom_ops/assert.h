@@ -13,7 +13,7 @@
 namespace ncg {
 
 class OpAssert : public Op {
-    NCG_DEF_OPNAME(OpAssert);
+    NCG_OP_DEF_NAME(OpAssert);
 
     virtual void check_inputs(OpContext *ctx, const TensorVec, &inputs) {
         if (ctx.is_error()) return;

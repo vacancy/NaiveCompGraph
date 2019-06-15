@@ -5,8 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_TENSOR_H
-#define GRAPH_TENSOR_H
+#pragma once
 
 #include "core/tensor.h"
 
@@ -64,4 +63,3 @@ protected:
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_TENSOR_H */

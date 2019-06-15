@@ -43,26 +43,14 @@ void GraphTopoSorter::mark_(const GTensorPtr &t) {
     m_visited.emplace(opi);
 }
 
-Graph::Graph() : m_ops(), m_is_error(false), m_error() {
+Graph::Graph() : m_ops() {
     // Pass
 }
 
-bool Graph::ok() const {
-    return !m_is_error;
-}
-
-bool Graph::is_error() const {
-    return m_is_error;
-}
-
-std::string Graph::error_str() const {
-    return m_error.str();
-}
-
 std::ostringstream &Graph::error(const GraphOp *op) {
-    m_is_error = true;
-    // m_error << op->name() << ": ";
-    return m_error;
+    auto &error = RuntimeContext::error();
+    // error << op->op_name() << ": ";
+    return error;
 }
 
 GOpPtr Graph::find_op(const std::string &name) {
@@ -165,9 +153,9 @@ void GraphForwardContext::set_tensor(const GTensorPtr &gtensor, const TensorPtr 
 }
 
 std::ostringstream &GraphForwardContext::error(const GraphOp *op) {
-    m_is_error = true;
-    // m_error << op->name() << ": ";
-    return m_error;
+    auto &error = RuntimeContext::error();
+    // error << op->op_name() << ": ";
+    return error;
 }
 
 } /* !namespace ncg */

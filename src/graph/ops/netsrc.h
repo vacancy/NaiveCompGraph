@@ -1,12 +1,11 @@
 /*
- * graph_netsrc.h
+ * netsrc.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
  */
 
-#ifndef GRAPH_OPS_NETSRC_H
-#define GRAPH_OPS_NETSRC_H
+#pragma once
 
 #include "graph/op.h"
 #include <vector>
@@ -16,9 +15,7 @@ namespace ncg {
 class GraphNetSrcOp : public GraphOp, public GraphSingleOutputOp {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
-        if (inputs.size() > 0) {
-            graph.error(this) << "NetSrc ops do not take any inputs";
-        }
+        NCG_OP_CHECK_EMPTY_INPUTS(graph, inputs);
     }
 
     virtual void backward(Graph &graph, GTensorPtr loss) {
@@ -29,7 +26,7 @@ public:
 class GOpPlaceholderDesc : public OpDesc {
 public:
     GOpPlaceholderDesc() : desc() {}
-    GOpPlaceholderDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
+    GOpPlaceholderDesc(DTypeName dtype, const ShapeVec &shape) : desc(dtype, shape) {}
     virtual ~GOpPlaceholderDesc() = default;
 
     TensorDesc desc;
@@ -37,7 +34,7 @@ public:
 
 class GOpPlaceholder : public GraphNetSrcOp {
 public:
-    NCG_DEF_GOPNAME(GOpPlaceholder);
+    NCG_GOP_DEF_NAME(GOpPlaceholder);
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, this->template desc<GOpPlaceholderDesc>().desc)};
@@ -62,7 +59,7 @@ public:
 
 class GOpConstant : public GraphNetSrcOp {
 public:
-    NCG_DEF_GOPNAME(GOpConstant);
+    NCG_GOP_DEF_NAME(GOpConstant);
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, this->template desc<GOpConstantDesc>().tensor->desc())};
@@ -83,7 +80,7 @@ public:
 
 class GOpVariable : public GraphNetSrcOp {
 public:
-    NCG_DEF_GOPNAME(GOpVariable);
+    NCG_GOP_DEF_NAME(GOpVariable);
 
     void set_value(Session &session, const TensorPtr &tensor) {
         session.set_shared_tensor(m_outputs[0], tensor);
@@ -99,47 +96,47 @@ public:
     }
 };
 
-class GOpZerosDesc : public OpDesc {
+class OpZerosDesc : public OpDesc {
 public:
-    GOpZerosDesc() : desc() {}
-    GOpZerosDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
-    virtual ~GOpZerosDesc() = default;
+    OpZerosDesc() : desc() {}
+    OpZerosDesc(DTypeName dtype, const ShapeVec &shape) : desc(dtype, shape) {}
+    virtual ~OpZerosDesc() = default;
 
     TensorDesc desc;
 };
 
 class GOpZeros: public GraphNetSrcOp {
 public:
-    NCG_DEF_GOPNAME(GOpZeros);
+    NCG_GOP_DEF_NAME(GOpZeros);
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
-        return {make_tensor(0, this->template desc<GOpZerosDesc>().desc)};
+        return {make_tensor(0, this->template desc<OpZerosDesc>().desc)};
     }
     virtual void forward(GraphForwardContext &ctx) const {
-        auto &desc = this->template desc<GOpZerosDesc>().desc;
+        auto &desc = this->template desc<OpZerosDesc>().desc;
         auto tensor = zeros(desc.dtype(), desc.shape_vec());
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };
 
-class GOpOnesDesc : public OpDesc {
+class OpOnesDesc : public OpDesc {
 public:
-    GOpOnesDesc() : desc() {}
-    GOpOnesDesc(DTypeName dtype, const shape_vec &shape) : desc(dtype, shape) {}
-    virtual ~GOpOnesDesc() = default;
+    OpOnesDesc() : desc() {}
+    OpOnesDesc(DTypeName dtype, const ShapeVec &shape) : desc(dtype, shape) {}
+    virtual ~OpOnesDesc() = default;
 
     TensorDesc desc;
 };
 
 class GOpOnes: public GraphNetSrcOp {
 public:
-    NCG_DEF_GOPNAME(GOpZeros);
+    NCG_GOP_DEF_NAME(GOpZeros);
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
-        return {make_tensor(0, this->template desc<GOpOnesDesc>().desc)};
+        return {make_tensor(0, this->template desc<OpOnesDesc>().desc)};
     }
     virtual void forward(GraphForwardContext &ctx) const {
-        auto &desc = this->template desc<GOpOnesDesc>().desc;
+        auto &desc = this->template desc<OpOnesDesc>().desc;
         auto tensor = ones(desc.dtype(), desc.shape_vec());
         ctx.set_tensor(m_outputs[0], tensor);
     }
@@ -147,4 +144,3 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !GRAPH_OPS_NETSRC_H */

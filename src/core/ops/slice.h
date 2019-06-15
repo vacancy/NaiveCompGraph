@@ -5,11 +5,10 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef SLICE_H
-#define SLICE_H
+#ifndef CORE_OPS_SLICES_H
+#define CORE_OPS_SLICES_H
 
 #include "core/op.h"
-#include "core/ops/op_common.h"
 
 namespace ncg {
 
@@ -24,7 +23,7 @@ public:
 
 class OpConcat : public Op {
 public:
-    NCG_DEF_OPNAME(OpConcat);
+    NCG_OP_DEF_NAME(OpConcat);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
@@ -58,7 +57,7 @@ public:
         auto output = empty(inputs[0]->desc().dtype(), shape);
 
 #define CONCAT_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs, output);
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), CONCAT_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), CONCAT_DTYPE_CASE);
 #undef CONCAT_DTYPE_CASE
 
         return {output};
@@ -88,16 +87,16 @@ private:
 class OpSplitDesc : public OpDesc {
 public:
     OpSplitDesc() : axis(0), splits() {}
-    OpSplitDesc(ssize_t axis, const shape_vec &splits) : axis(axis), splits(splits) {}
+    OpSplitDesc(ssize_t axis, const ShapeVec &splits) : axis(axis), splits(splits) {}
     virtual ~OpSplitDesc() = default;
 
     ssize_t axis;
-    shape_vec splits;
+    ShapeVec splits;
 };
 
 class OpSplit : public Op {
 public:
-    NCG_DEF_OPNAME(OpSplit);
+    NCG_OP_DEF_NAME(OpSplit);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
@@ -146,7 +145,7 @@ public:
 
 class OpNarrow : public Op {
 public:
-    NCG_DEF_OPNAME(OpNarrow);
+    NCG_OP_DEF_NAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
@@ -184,7 +183,7 @@ public:
 
 class OpIndexSelect : public Op {
 public:
-    NCG_DEF_OPNAME(OpNarrow);
+    NCG_OP_DEF_NAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
@@ -209,11 +208,11 @@ public:
 
         if (inputs[1]->desc().dtype() == DTypeName::Int32) {
 #define INDEXSELECT32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), INDEXSELECT32_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECT32_DTYPE_CASE);
 #undef INDEXSELECT32_DTYPE_CASE
         } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
 #define INDEXSELECT64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), INDEXSELECT64_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECT64_DTYPE_CASE);
 #undef INDEXSELECT64_DTYPE_CASE
         }
 
@@ -260,7 +259,7 @@ public:
 
 class OpGather : public Op {
 public:
-    NCG_DEF_OPNAME(OpNarrow);
+    NCG_OP_DEF_NAME(OpNarrow);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
@@ -289,11 +288,11 @@ public:
 
         if (inputs[1]->desc().dtype() == DTypeName::Int32) {
 #define GATHER32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), GATHER32_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), GATHER32_DTYPE_CASE);
 #undef GATHER32_DTYPE_CASE
         } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
 #define GATHER64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), GATHER64_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), GATHER64_DTYPE_CASE);
 #undef GATHER64_DTYPE_CASE
         }
 
@@ -332,4 +331,4 @@ private:
 
 } /* !namespace ncg */
 
-#endif /* !SLICE_H */
+#endif /* !CORE_OPS_SLICES_H */

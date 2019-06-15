@@ -9,7 +9,7 @@
 #define CORE_OPS_SHAPE_H
 
 #include "core/op.h"
-#include "core/ops/op_common.h"
+
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -19,15 +19,15 @@ namespace ncg {
 class OpReshapeDesc : public OpDesc {
 public:
     OpReshapeDesc() : shape() {}
-    OpReshapeDesc(const shape_vec &shape) : shape(shape) {}
+    OpReshapeDesc(const ShapeVec &shape) : shape(shape) {}
     virtual ~OpReshapeDesc() = default;
 
-    shape_vec shape;
+    ShapeVec shape;
 };
 
 class OpReshape : public Op {
 public:
-    NCG_DEF_OPNAME(OpReshape);
+    NCG_OP_DEF_NAME(OpReshape);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
@@ -99,15 +99,15 @@ public:
 class OpPermuteDesc : public OpDesc {
 public:
     OpPermuteDesc() : axes() {}
-    OpPermuteDesc(const shape_vec &axes) : axes(axes) {}
+    OpPermuteDesc(const ShapeVec &axes) : axes(axes) {}
     virtual ~OpPermuteDesc() = default;
 
-    shape_vec axes;
+    ShapeVec axes;
 };
 
 class OpPermute: public Op {
 public:
-    NCG_DEF_OPNAME(OpPermute);
+    NCG_OP_DEF_NAME(OpPermute);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
@@ -144,15 +144,15 @@ public:
 class OpExpandDesc : public OpDesc {
 public:
     OpExpandDesc() : shape() {};
-    OpExpandDesc(const shape_vec &shape) : shape(shape) {}
+    OpExpandDesc(const ShapeVec &shape) : shape(shape) {}
     virtual ~OpExpandDesc() = default;
 
-    shape_vec shape;
+    ShapeVec shape;
 };
 
 class OpExpand : public Op {
 public:
-    NCG_DEF_OPNAME(OpExpand);
+    NCG_OP_DEF_NAME(OpExpand);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
@@ -189,7 +189,7 @@ public:
 };
 
 class OpAutoBroadcast : public Op {
-    NCG_DEF_OPNAME(OpAutoBroadcast);
+    NCG_OP_DEF_NAME(OpAutoBroadcast);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);

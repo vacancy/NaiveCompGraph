@@ -49,7 +49,6 @@ const GTensorVec &GraphOp::outputs(void) const {
 const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTensorVec &inputs) {
     ncg_assert_msg(!m_initialized, std::string("Op ") + name() + " initialized twice.");
     m_initialized = true;
-
     m_desc = desc;
 
     check_inputs(graph, inputs);
@@ -61,7 +60,7 @@ const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTen
 }
 
 void GraphOp::backward(Graph &graph, GTensorPtr loss) {
-    graph.error(this) << "Backward is not implemented for " << op_name();
+    graph.error(this) << "Backward is not implemented for " << op_name() << ".";
 }
 
 GTensorPtr GraphOp::make_tensor(ssize_t index, const TensorDesc &desc) {

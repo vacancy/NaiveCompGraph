@@ -7,7 +7,8 @@
 
 #include "graph/graph.h"
 #include "graph/op.h"
-#include "graph/ops/op_common.h"
-#include "graph/ops/arith.h"
+#include "graph/ops/elemwise.h"
+#include "graph/ops/grad.h"
+#include "graph/ops/linalg.h"
 #include "graph/ops/netsrc.h"
 

@@ -7,7 +7,7 @@
 
 #include "graph/tensor.h"
 #include "graph/op.h"
-#include "graph/ops/arith.h"
+#include "graph/ops/elemwise.h"
 
 namespace ncg {
 

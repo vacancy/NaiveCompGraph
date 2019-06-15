@@ -5,11 +5,12 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_TENSOR_H
-#define CORE_TENSOR_H
+#pragma once
 
 #include "core/common.h"
 #include "core/datatype.h"
+#include "core/tensor_desc.h"
+#include "core/tensor_storage.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -20,104 +21,6 @@
 #include <limits>
 
 namespace ncg {
-
-const size_t TensorMaxDim = 15;
-const size_t TensorValueMaxPrint = 16;
-
-const ssize_t TensorShape0 = std::numeric_limits<ssize_t>::min();
-const ssize_t NewAxis = std::numeric_limits<ssize_t>::max();
-
-class shape_vec : public std::vector<ssize_t> {
-public:
-    using std::vector<ssize_t>::vector;
-    friend std::ostream &operator << (std::ostream &out, const shape_vec &shape);
-};
-
-class TensorDesc {
-public:
-    TensorDesc();
-    TensorDesc(DTypeName dtype, const class shape_vec &shape, const class shape_vec &stride = {});
-    virtual ~TensorDesc() = default;
-
-    DTypeName dtype() const;
-
-    size_t dim() const;
-
-    class shape_vec shape_vec() const;
-    ssize_t *shape();
-    const ssize_t *shape() const;
-    class shape_vec stride_vec() const;
-    ssize_t *stride();
-    const ssize_t *stride() const;
-
-    ssize_t &shape(ssize_t i);
-    ssize_t shape(ssize_t i) const;
-    ssize_t &stride(ssize_t i);
-    ssize_t stride(ssize_t i) const;
-
-    class shape_vec get_default_stride() const;
-    void set_default_stride();
-
-    bool is_continugous() const;
-    size_t numel() const;
-    bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
-    friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
-
-protected:
-    DTypeName m_dtype;
-    ssize_t m_shape[TensorMaxDim + 1];
-    ssize_t m_stride[TensorMaxDim + 1];
-};
-
-class TensorStorage {
-public:
-    TensorStorage(DTypeName dtype);
-    virtual ~TensorStorage() = default;
-
-    DTypeName dtype() const;
-    virtual size_t size() const = 0;
-    virtual size_t memsize() const = 0;
-
-    virtual TensorStorage *clone(ssize_t start = 0, ssize_t length = std::numeric_limits<ssize_t>::max()) const = 0;
-
-    friend std::ostream &operator << (std::ostream &out, const TensorStorage &storage);
-
-protected:
-    DTypeName m_dtype;
-};
-
-template <DTypeName DT> class TensorStorageImpl;
-template <DTypeName DT> std::ostream &operator << (std::ostream &out, const TensorStorageImpl<DT> &storage);
-
-template <DTypeName DT>
-class TensorStorageImpl : public TensorStorage {
-public:
-    using cctype = typename DType<DT>::cctype;
-
-    TensorStorageImpl();
-    explicit TensorStorageImpl(cctype *data_ptr, size_t size);
-    explicit TensorStorageImpl(size_t size);
-
-    /* NB: delete the copy-constructor and move-constructor */
-    TensorStorageImpl(const TensorStorageImpl<DT> &) = delete;
-    TensorStorageImpl(TensorStorageImpl<DT> &&) = delete;
-
-    virtual ~TensorStorageImpl();
-
-    virtual size_t size() const;
-    virtual size_t memsize() const;
-
-    const cctype *data_ptr() const;
-    cctype *mutable_data_ptr();
-
-    virtual TensorStorage *clone(ssize_t start = 0, ssize_t length = std::numeric_limits<ssize_t>::max()) const;
-
-    friend std::ostream &operator << <> (std::ostream &out, const TensorStorageImpl<DT> &storage);
-
-protected:
-    cctype *m_data_ptr;
-    size_t m_size;
-};
 
 template <DTypeName DT>
 class TensorImpl;
@@ -261,31 +164,31 @@ protected:
 };
 
 TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);
-TensorPtr empty(DTypeName dtype, const shape_vec &shape);
+TensorPtr empty(DTypeName dtype, const ShapeVec &shape);
 
 template <typename ValueT = double>
-TensorPtr fill(DTypeName dtype, const shape_vec &shape, ValueT value) {
+TensorPtr fill(DTypeName dtype, const ShapeVec &shape, ValueT value) {
     auto s = empty(dtype, shape);
 
 #define FILL_DTYPE_CASE(dtype_name) do { \
     auto s_dtype = s->template as<DTypeName::dtype_name>();\
     for (ssize_t i = 0; i < s_dtype->desc().numel(); ++i) s_dtype->mutable_elat(i) = value; \
 } while(0)
-NCG_SWITCH_DTYPE_ALL(dtype, FILL_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(dtype, FILL_DTYPE_CASE);
 #undef FILL_DTYPE_CASE
 
     return s;
 }
 
-TensorPtr zeros(DTypeName dtype, const shape_vec &shape);
-TensorPtr ones(DTypeName dtype, const shape_vec &shape);
+TensorPtr zeros(DTypeName dtype, const ShapeVec &shape);
+TensorPtr ones(DTypeName dtype, const ShapeVec &shape);
 
 template <typename ValueT = double>
 TensorPtr scalar(DTypeName dtype, ValueT value = 0) {
     auto s = empty(dtype, {});
 
 #define SCALAR_DTYPE_CASE(dtype_name) s->template as<DTypeName::dtype_name>()->mutable_data_ptr()[0] = value
-NCG_SWITCH_DTYPE_ALL(dtype, SCALAR_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(dtype, SCALAR_DTYPE_CASE);
 #undef SCALAR_DTYPE_CASE
 
     return s;
@@ -304,7 +207,7 @@ TensorPtr fromcc(DTypeName dtype, std::vector<ValueT> values = 0) {
     auto data_ptr = s->template as<DTypeName::dtype_name>()->mutable_data_ptr(); \
     for (ssize_t i = 0; i < values.size(); ++i) { data_ptr[i] = values[i]; } \
 } while(0)
-NCG_SWITCH_DTYPE_ALL(dtype, FROMCC_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(dtype, FROMCC_DTYPE_CASE);
 #undef FROMCC_DTYPE_CASE
 
     return s;
@@ -324,7 +227,7 @@ TensorPtr fromcc(DTypeName dtype, std::vector<std::vector<ValueT>> values = 0) {
         for (ssize_t j = 0; j < values[i].size(); ++j) data_ptr[k++] = values[i][j]; \
     } \
 } while(0)
-NCG_SWITCH_DTYPE_ALL(dtype, FROMCC_DTYPE_CASE);
+NCG_DTYPE_SWITCH_ALL(dtype, FROMCC_DTYPE_CASE);
 #undef FROMCC_DTYPE_CASE
 
     return s;
@@ -334,4 +237,3 @@ TensorPtr arange(DTypeName dtype, int64_t begin, int64_t end = std::numeric_limi
 
 } /* !namespace ncg */
 
-#endif /* !CORE_TENSOR_H */
