@@ -52,34 +52,34 @@ DTypeName TensorDesc::dtype() const {
     return m_dtype;
 }
 
-size_t TensorDesc::dim(void) const {
+size_t TensorDesc::dim() const {
     size_t i;
     for (i = 0; i <= TensorMaxDim; ++i)
         if (m_shape[i] == TensorShape0) break;
     return i;
 }
 
-ShapeVec TensorDesc::shape_vec(void) const {
+ShapeVec TensorDesc::shape_vec() const {
     return ShapeVec(m_shape, m_shape + dim());
 }
 
-ssize_t *TensorDesc::shape(void) {
+ssize_t *TensorDesc::shape() {
     return m_shape;
 }
 
-const ssize_t *TensorDesc::shape(void) const {
+const ssize_t *TensorDesc::shape() const {
     return m_shape;
 }
 
-ShapeVec TensorDesc::stride_vec(void) const {
+ShapeVec TensorDesc::stride_vec() const {
     return ShapeVec(m_stride, m_stride + dim());
 }
 
-ssize_t *TensorDesc::stride(void) {
+ssize_t *TensorDesc::stride() {
     return m_stride;
 }
 
-const ssize_t *TensorDesc::stride(void) const {
+const ssize_t *TensorDesc::stride() const {
     return m_stride;
 }
 

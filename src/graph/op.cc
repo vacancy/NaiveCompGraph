@@ -20,14 +20,14 @@ GraphOp::GraphOp() :
     // Pass
 }
 
-std::string GraphOp::name(void) const {
+std::string GraphOp::name() const {
     if (m_name_initialized) {
         return m_name;
     }
     return auto_name();
 }
 
-std::string GraphOp::auto_name(void) const {
+std::string GraphOp::auto_name() const {
     std::ostringstream ss;
     ss << op_name() << "@" << this;
     return ss.str();
@@ -38,11 +38,11 @@ void GraphOp::set_name(const std::string &name) {
     m_name = name;
 }
 
-const GTensorVec &GraphOp::inputs(void) const {
+const GTensorVec &GraphOp::inputs() const {
     return m_inputs;
 }
 
-const GTensorVec &GraphOp::outputs(void) const {
+const GTensorVec &GraphOp::outputs() const {
     return m_outputs;
 }
 

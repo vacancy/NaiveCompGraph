@@ -13,20 +13,18 @@
 
 namespace ncg {
 
-struct GOpPrintDesc : OpDesc {
+struct OpPrintDesc : OpDesc {
 public:
-    GOpPrintDesc(const std::string &name = "") : name(name) {}
+    OpPrintDesc(const std::string &name = "") : name(name) {}
     std::string name;
 };
 
 class GOpPrint : public GraphOp, public GraphSingleOutputOp {
 public:
-    NCG_DEF_GOPNAME(GOpPrint);
+    NCG_GOP_DEF_NAME(GOpPrint);
 
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
-        if (inputs.size() != 1) {
-            graph.error(this) << "Print op takes one input";
-        }
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
     }
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[0]->desc())};
@@ -34,7 +32,7 @@ public:
 
     virtual void forward(GraphForwardContext &ctx) const {
         TensorPtr tensor = ctx.tensor(m_inputs[0]);
-        const std::string &name = this->template desc<GOpPrintDesc>().name;
+        const std::string &name = this->template desc<OpPrintDesc>().name;
         std::cout << "PRINT operator: " << name << " = " << tensor->as<DTypeName::Float32>()->data_ptr()[0] << std::endl;
         ctx.set_tensor(m_outputs[0], tensor);
     }

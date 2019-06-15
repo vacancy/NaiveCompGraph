@@ -8,6 +8,7 @@
 #pragma once
 
 #include "core/common.h"
+#include <type_traits>
 
 namespace ncg {
 
@@ -26,19 +27,29 @@ template <DTypeName Name>
 struct DType {
 };
 
-#define DEF_DTYPE_CCTYPE(identifier, cctype_) template<> \
-struct DType<DTypeName::identifier> { \
+template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
+struct CCType {
+};
+
+#define DEF_DTYPE_CCTYPE(identifier_, cctype_) template<> \
+struct DType<DTypeName::identifier_> { \
     using cctype = cctype_; \
-    static constexpr char name[] = #identifier; \
-    static constexpr DTypeName identifier = DTypeName::identifier; \
+    static constexpr char name[] = #identifier_; \
+    static constexpr DTypeName identifier = DTypeName::identifier_; \
+}; \
+template<> \
+struct CCType<cctype_> { \
+    using cctype = cctype_; \
+    static constexpr char name[] = #identifier_; \
+    static constexpr DTypeName identifier = DTypeName::identifier_; \
 }
 
-DEF_DTYPE_CCTYPE(Int8, short);
-DEF_DTYPE_CCTYPE(UInt8, unsigned short);
-DEF_DTYPE_CCTYPE(Int32, long);
-DEF_DTYPE_CCTYPE(UInt32, unsigned long);
-DEF_DTYPE_CCTYPE(Int64, long long);
-DEF_DTYPE_CCTYPE(UInt64, unsigned long long);
+DEF_DTYPE_CCTYPE(Int8, int8_t);
+DEF_DTYPE_CCTYPE(UInt8, uint8_t);
+DEF_DTYPE_CCTYPE(Int32, int32_t);
+DEF_DTYPE_CCTYPE(UInt32, uint32_t);
+DEF_DTYPE_CCTYPE(Int64, int64_t);
+DEF_DTYPE_CCTYPE(UInt64, uint64_t);
 DEF_DTYPE_CCTYPE(Float32, float);
 DEF_DTYPE_CCTYPE(Float64, double);
 

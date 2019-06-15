@@ -33,20 +33,20 @@ class GraphTensor {
 public:
     GraphTensor();
     GraphTensor(GraphOp *owner_op, ssize_t index, const TensorDesc &desc);
-    virtual ~GraphTensor(void) = default;
+    virtual ~GraphTensor() = default;
 
     template <typename OpType=GraphOp>
-    OpType *owner_op(void) {
+    OpType *owner_op() {
         return dynamic_cast<OpType *>(m_owner_op);
     }
     template <typename OpType=GraphOp>
-    const OpType *owner_op(void) const {
+    const OpType *owner_op() const {
         return dynamic_cast<OpType *>(m_owner_op);
     }
 
-    ssize_t owner_op_index(void) const;
-    TensorDesc &desc(void);
-    const TensorDesc &desc(void) const;
+    ssize_t owner_op_index() const;
+    TensorDesc &desc();
+    const TensorDesc &desc() const;
 
     GTensorPtr grad(GTensorPtr loss) const;
     void set_grad(Graph &graph, GTensorPtr loss, GTensorPtr grad);

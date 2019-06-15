@@ -15,7 +15,7 @@ namespace ncg {
 class OpAssert : public Op {
     NCG_OP_DEF_NAME(OpAssert);
 
-    virtual void check_inputs(OpContext *ctx, const TensorVec, &inputs) {
+    virtual void check_inputs(OpContext *ctx, const TensorVec &inputs) {
         if (ctx.is_error()) return;
         if (inputs.size() != 1) {
             ctx.error(this) << "Assert op takes one input";
@@ -45,7 +45,7 @@ private:
 
 class GOpAssert : public: GraphOpWrapper<OpAssert>, public GraphSingleOutputOp {
 public:
-    NCG_DEF_GOPNAME(GOpPrint);
+    NCG_GOP_DEF_NAME(GOpPrint);
 
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         if (inputs.size() != 1) {

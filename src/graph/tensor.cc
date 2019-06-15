@@ -20,15 +20,15 @@ GraphTensor::GraphTensor(GraphOp *owner_op, ssize_t index, const TensorDesc &des
     // Pass
 }
 
-ssize_t GraphTensor::owner_op_index(void) const {
+ssize_t GraphTensor::owner_op_index() const {
     return m_owner_op_index;
 }
 
-TensorDesc &GraphTensor::desc(void) {
+TensorDesc &GraphTensor::desc() {
     return m_desc;
 }
 
-const TensorDesc &GraphTensor::desc(void) const {
+const TensorDesc &GraphTensor::desc() const {
     return m_desc;
 }
 

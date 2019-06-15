@@ -327,8 +327,6 @@ private:
     }
 };
 
-// gather
-
 } /* !namespace ncg */
 
 #endif /* !CORE_OPS_SLICES_H */

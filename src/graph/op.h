@@ -19,7 +19,7 @@ namespace ncg {
 class GraphOp {
 public:
     GraphOp();
-    virtual ~GraphOp(void) = default;
+    virtual ~GraphOp() = default;
 
     virtual const char *op_name() const = 0;
     std::string name() const;
@@ -39,7 +39,9 @@ public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) = 0;
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) = 0;
 
+    virtual void forward_hook_pre(GraphForwardContext &ctx) const {}
     virtual void forward(GraphForwardContext &ctx) const = 0;
+    virtual void forward_hook_post(GraphForwardContext &ctx) const {}
     virtual void backward(Graph &graph, GTensorPtr loss);
 
     GTensorPtr make_tensor(ssize_t index, const TensorDesc &desc);
@@ -55,7 +57,7 @@ protected:
     bool m_initialized;
 };
 
-#define NCG_GOP_DEF_NAME(op_name_) virtual const char *op_name(void) const { return #op_name_; }
+#define NCG_GOP_DEF_NAME(op_name_) virtual const char *op_name() const { return #op_name_; }
 
 #define NCG_GOP_DEF_NO_GRAD(op_name_) void op_name_::backward(Graph &graph, GTensorPtr loss) { \
     for (auto &tensor : m_inputs) { tensor->set_grad(graph, loss, nullptr); } \

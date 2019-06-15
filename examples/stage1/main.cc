@@ -124,7 +124,7 @@ public:
         return nullptr;
     }
 
-    void debug(void) const {
+    void debug() const {
         std::cerr << "==========Graph Def==========" << std::endl;
         for (auto &it : m_variables) {
             std::cerr << it.first << ": " << *(it.second) << std::endl;
@@ -305,7 +305,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
         auto variable_op =  m_variables[name]->owner_op<GOpVariable>();
         variable_op->set_value(m_session, scalar(DTypeName::Float32, value));
 
-        answer_stack.emplace_back(scalar(DTypeName::Float32));
+        answer_stack.emplace_back(scalar(DTypeName::Float32, 0));
     } else if (op == "SETANSWER") {
         std::string name; int k;
         ss >> name >> k;
@@ -313,7 +313,7 @@ void CParser::parse_geval(std::istream &ss, std::vector<TensorPtr> &answer_stack
         auto value = answer_stack[k - 1];
         variable_op->set_value(m_session, value);
 
-        answer_stack.emplace_back(scalar(DTypeName::Float32));
+        answer_stack.emplace_back(scalar(DTypeName::Float32, 0));
     }
 }
 
@@ -341,7 +341,7 @@ std::string CParser::pop_string_() {
     return v.get_string();
 }
 
-void CParser::reduce_(void) {
+void CParser::reduce_() {
     auto op = *(m_op_stack.rbegin());
     m_op_stack.pop_back();
     if (op == COp::Add || op == COp::Sub || op == COp::Mul || op == COp::Div) {
@@ -356,7 +356,7 @@ void CParser::reduce_(void) {
     } else if (op == COp::Print) {
         auto a = pop_string_();
         auto b = m_variables[a];
-        m_value_stack.emplace_back(CValue(m_graph.op<GOpPrint>(OpDescPtr(new GOpPrintDesc(a)), b)));
+        m_value_stack.emplace_back(CValue(m_graph.op<GOpPrint>(OpDescPtr(new OpPrintDesc(a)), b)));
     } else if (op == COp::Cond) {
         auto c = pop_value_(), b = pop_value_(), a = pop_value_();
         m_value_stack.emplace_back(CValue(m_graph.op<GOpCond>(nullptr, a, b, c)));
@@ -365,7 +365,7 @@ void CParser::reduce_(void) {
 
 }
 
-int main(void) {
+int main() {
     std::cout << std::fixed << std::setprecision(4);
     std::cerr << std::fixed << std::setprecision(4);
 

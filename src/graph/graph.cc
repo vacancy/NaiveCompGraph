@@ -136,6 +136,13 @@ TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
         }
     }
 
+    for (const GraphOp *op: sorter->sorted()) {
+        op->forward_hook_post(*this);
+        if (!ok()) {
+            return outputs;
+        }
+    }
+
     for (const auto &t: targets) {
         outputs.emplace_back(tensor(t));
     }

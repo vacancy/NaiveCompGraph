@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "core/tensor_impl.h"
 #include "graph/tensor.h"
 #include "graph/op.h"
 
@@ -26,8 +27,8 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        TensorPtr loss = ctx.tensor(m_inputs[0]);
-        TensorPtr grad = scalar(loss->desc().dtype(), 1);
+        auto loss = ctx.tensor(m_inputs[0]);
+        auto grad = scalar(loss->desc().dtype(), 1);
         ctx.set_tensor(m_outputs[0], grad);
     }
 

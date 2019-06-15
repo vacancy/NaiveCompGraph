@@ -14,7 +14,9 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <stack>
 #include <typeinfo>
+#include <type_traits>
 
 namespace ncg {
 
@@ -141,6 +143,40 @@ public:
 private:
     bool m_is_error;
     std::ostringstream m_error;
+};
+
+template <typename T>
+class DefaultManager {
+public:
+    DefaultManager() : m_stack(), m_has_default(false), m_default_element(nullptr) {
+        // pass
+    }
+
+    explicit DefaultManager(bool has_default) : m_stack(), m_has_default(has_default), m_default_element(nullptr) {
+        if (has_default) {
+            m_default_element = std::make_unique<T>();
+            m_stack.push(m_default_element.get());
+        }
+    }
+    ~DefaultManager() = default;
+
+    T &get_default() {
+        ncg_assert(m_stack.size() > 0);
+        return *(m_stack.top());
+    }
+    void as_default(T *new_default) {
+        m_stack.push(new_default);
+    }
+    void restore_default() {
+        ncg_assert(m_stack.size() > int(m_has_default));
+        m_stack.pop();
+    }
+
+private:
+    std::stack<T *> m_stack;
+
+    bool m_has_default;
+    std::unique_ptr<T> m_default_element;
 };
 
 } /* !namespace ncg */

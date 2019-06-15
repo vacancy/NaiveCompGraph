@@ -11,4 +11,6 @@
 #include "graph/ops/grad.h"
 #include "graph/ops/linalg.h"
 #include "graph/ops/netsrc.h"
+#include "graph/ops/shape.h"
+#include "graph/ops/update.h"
 

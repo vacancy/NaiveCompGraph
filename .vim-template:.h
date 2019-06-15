@@ -5,8 +5,7 @@
  * Distributed under terms of the %LICENSE% license.
  */
 
-#ifndef %GUARD%
-#define %GUARD%
+#pragma once
 
 namespace ncg {
 
@@ -14,4 +13,3 @@ namespace ncg {
 
 } /* !namespace ncg */
 
-#endif /* !%GUARD% */

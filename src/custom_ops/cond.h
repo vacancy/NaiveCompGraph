@@ -18,18 +18,16 @@ public:
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         ElemWiseOp::check_inputs(ctx, inputs);
-        if (ctx.is_error()) return;
-        if (inputs.size() != 3) {
-            ctx.error(this) << "Cond op takes three inputs";
-        }
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 3);
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         TensorPtr output = empty(inputs[2]->desc().dtype(), inputs[2]->desc().shape_vec());
 
-#define COND_COMPUTE_TYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
-NCG_SWITCH_DTYPE_ALL(inputs[0]->desc().dtype(), COND_COMPUTE_TYPE);
-#undef COND_COMPUTE_TYPE
+#define COND_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), COND_COMPUTE_DTYPE);
+#undef COND_COMPUTE_DTYPE
 
         return {output};
     }
@@ -50,7 +48,13 @@ private:
 
 class GOpCond : public GraphElemWiseOp<OpCond>, public GraphSingleOutputOp {
 public:
-    NCG_DEF_GOPNAME(GOpCond);
+    NCG_GOP_DEF_NAME(GOpCond);
+
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        GraphElemWiseOp::check_inputs(graph, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(graph);
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 3);
+    }
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[2]->desc())};
