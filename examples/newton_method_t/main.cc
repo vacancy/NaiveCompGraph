@@ -19,12 +19,10 @@ using namespace std;
 void solve() {
     Graph graph;
     Session session(graph);
+    as_default_graph(graph);
+    as_default_session(session);
 
-    T::as_default_graph(graph);
-    T::as_default_session(session);
-
-    T::TTensor x = T::placeholder("x", {});
-    T::TTensor y = float(0);
+    auto x = G::placeholder("x", {}), y = as_gtensor(float(0));
 
     int k;
     cin >> k;
@@ -33,7 +31,7 @@ void solve() {
         cin >> j;
 
         float pi = i, ai = j;
-        y = y + ai * T::pow(x, pi);
+        y = y + ai * G::pow(x, pi);
     }
 
     graph.backward(y);
@@ -43,7 +41,7 @@ void solve() {
     cin >> x_val;
 
     for (int i = 0; i < 5; ++i) {
-        auto ctx = T::forward_ctx();
+        GraphForwardContext ctx;
         ctx.feed("x", scalar(DTypeName::Float32, x_val));
         auto outputs = ctx.eval({new_x, y, x->grad(y)});
 
@@ -52,8 +50,8 @@ void solve() {
     }
     cout << endl;
 
-    T::restore_default_session();
-    T::restore_default_graph();
+    restore_default_session();
+    restore_default_graph();
 }
 
 int main() {

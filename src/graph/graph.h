@@ -121,6 +121,7 @@ protected:
 
 class GraphForwardContext : public OpContext {
 public:
+    GraphForwardContext();
     GraphForwardContext(Session &session);
 
     Session &session();
@@ -140,6 +141,14 @@ protected:
     std::unordered_map<std::uintptr_t, TensorPtr> m_storage;
     std::unordered_map<std::string, TensorPtr> m_feed_dict;
 };
+
+void as_default_graph(Graph &);
+Graph &get_default_graph();
+void restore_default_graph();
+
+void as_default_session(Session &);
+Session &get_default_session();
+void restore_default_session();
 
 } /* !namespace ncg */
 

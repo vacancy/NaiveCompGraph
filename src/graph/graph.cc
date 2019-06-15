@@ -100,6 +100,9 @@ void Session::set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tens
     m_shared_tensors[reinterpret_cast<std::uintptr_t>(gtensor.get())] = tensor;
 }
 
+GraphForwardContext::GraphForwardContext() : m_session(get_default_session()), m_feed_dict(), m_storage() {
+}
+
 GraphForwardContext::GraphForwardContext(Session &session) : m_session(session), m_feed_dict(), m_storage() {
     // Pass
 }
@@ -163,6 +166,46 @@ std::ostringstream &GraphForwardContext::error(const GraphOp *op) {
     auto &error = RuntimeContext::error();
     // error << op->op_name() << ": ";
     return error;
+}
+
+namespace {
+
+static auto default_graph_manager = std::make_unique<DefaultManager<Graph>>(true);
+static auto default_session_manager = std::make_unique<DefaultManager<Session>>();
+static auto default_session = std::make_unique<Session>(default_graph_manager->get_default());
+
+struct DefaultSessionInitializer {
+    DefaultSessionInitializer() {
+        default_session_manager->as_default(default_session.get());
+    }
+};
+
+static DefaultSessionInitializer _default_session_initializer;
+
+} /* !namespace <anonymous> */
+
+void as_default_graph(Graph &graph) {
+    default_graph_manager->as_default(&graph);
+}
+
+Graph &get_default_graph() {
+    return default_graph_manager->get_default();
+}
+
+void restore_default_graph() {
+    default_graph_manager->restore_default();
+}
+
+void as_default_session(Session &session) {
+    default_session_manager->as_default(&session);
+}
+
+Session &get_default_session() {
+    return default_session_manager->get_default();
+}
+
+void restore_default_session() {
+    default_session_manager->restore_default();
 }
 
 } /* !namespace ncg */
