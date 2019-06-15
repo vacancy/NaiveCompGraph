@@ -55,9 +55,7 @@ ssize_t Tensor::data_ptr_offset() const {
 }
 
 std::ostream &operator << (std::ostream &out, const Tensor &tensor) {
-#define COUT_TENSOR_DTYPE_CASE(dtype_name) out << dynamic_cast<const TensorImpl<DTypeName::dtype_name> &>(tensor);
-NCG_DTYPE_SWITCH_ALL(tensor.desc().dtype(), COUT_TENSOR_DTYPE_CASE)
-#undef COUT_TENSOR_DTYPE_CASE
+    out << "Tensor(desc=" << tensor.desc() << ", storage=" << *tensor.storage() << ")";
     return out;
 }
 
@@ -75,7 +73,7 @@ NCG_DTYPE_SWITCH_ALL(desc.dtype(), TENSOR_DTYPE_CASE)
 TensorPtr empty(DTypeName dtype, const ShapeVec &shape) {
     TensorDesc desc(dtype, shape);
 
-#define EMPTY_DTYPE_CASE(dtype_name) return std::shared_ptr<Tensor>( \
+#define EMPTY_DTYPE_CASE(dtype_name) return TensorPtr( \
         static_cast<Tensor *>(new TensorImpl<DTypeName::dtype_name>(\
             desc, new TensorStorageImpl<DTypeName::dtype_name>(desc.numel()) \
         )) \
@@ -83,7 +81,7 @@ TensorPtr empty(DTypeName dtype, const ShapeVec &shape) {
 NCG_DTYPE_SWITCH_ALL(dtype, EMPTY_DTYPE_CASE)
 #undef EMPTY_DTYPE_CASE
 
-    return std::shared_ptr<Tensor>(nullptr);
+    return TensorPtr(nullptr);
 }
 
 TensorPtr zeros(DTypeName dtype, const ShapeVec &shape) {
@@ -199,7 +197,7 @@ TensorPtr narrow(TensorPtr a, ssize_t axis, ssize_t start, ssize_t length) {
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
-TensorPtr index_select(TensorPtr a, TensorPtr b, ssize_t axis) {
+TensorPtr index_select(TensorPtr a, ssize_t axis, TensorPtr b) {
     auto ctx = OpContext();
     auto op = OpIndexSelect();
     op.set_desc(OpDescPtr(new OpIndexSelectDesc(axis)));
@@ -208,7 +206,7 @@ TensorPtr index_select(TensorPtr a, TensorPtr b, ssize_t axis) {
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
-TensorPtr gather(TensorPtr a, TensorPtr b, ssize_t axis) {
+TensorPtr gather(TensorPtr a, ssize_t axis, TensorPtr b) {
     auto ctx = OpContext();
     auto op = OpGather();
     op.set_desc(OpDescPtr(new OpGatherDesc(axis)));
@@ -254,12 +252,17 @@ TensorPtr TensorPtr::narrow(ssize_t axis, ssize_t start, ssize_t length) {
     return ::ncg::narrow(*this, axis, start, length);
 }
 
-TensorPtr TensorPtr::index_select(const TensorPtr &indices, ssize_t axis) {
-    return ::ncg::index_select(*this, indices, axis);
+TensorPtr TensorPtr::index_select(ssize_t axis, const TensorPtr &indices) {
+    return ::ncg::index_select(*this, axis, indices);
 }
 
-TensorPtr TensorPtr::gather(const TensorPtr &indices, ssize_t axis) {
-    return ::ncg::gather(*this, indices, axis);
+TensorPtr TensorPtr::gather(ssize_t axis, const TensorPtr &indices) {
+    return ::ncg::gather(*this, axis, indices);
+}
+
+std::ostream &operator << (std::ostream &out, const TensorPtr &tensor) {
+    out << *tensor;
+    return out;
 }
 
 } /* !namespace ncg */

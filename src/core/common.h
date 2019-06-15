@@ -135,7 +135,7 @@ public:
 
     bool ok() const { return !m_is_error; }
     bool is_error() const { return m_is_error; }
-    std::ostringstream &error() { return m_error; }
+    std::ostringstream &error() { m_is_error = true; return m_error; }
 
     std::string error_str() const { return m_error.str(); }
     void reset_error() { m_is_error = false; m_error.clear(); }

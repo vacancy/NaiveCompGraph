@@ -266,7 +266,7 @@ public:
         NCG_OP_CHECK_INPUT_DTYPE_INT(ctx, inputs, 1);
         NCG_OP_CHECK_COMPATIBLE_DIM(ctx, inputs);
 
-        const auto &desc = this->template desc<OpIndexSelectDesc>();
+        const auto &desc = this->template desc<OpGatherDesc>();
         if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
             ctx.error(this) << "Invalid axis.";
             return;

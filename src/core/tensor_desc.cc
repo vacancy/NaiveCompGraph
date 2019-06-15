@@ -164,7 +164,7 @@ bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) cons
 
 std::ostream &operator << (std::ostream &out, const TensorDesc &desc) {
     size_t d = desc.dim();
-    out << "TensorDesc(" << "dim=" << d << ", shape=[";
+    out << "TensorDesc(dtype=" << get_dtype_name(desc.m_dtype) << ", dim=" << d << ", shape=[";
     for (ssize_t i = 0; i < d; ++i) out << desc.m_shape[i] << (i == d - 1 ? "" : ", ");
     out << "], stride=[";
     for (ssize_t i = 0; i < d; ++i) out << desc.m_stride[i] << (i == d - 1 ? "" : ", ");

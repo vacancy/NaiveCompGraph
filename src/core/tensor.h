@@ -69,6 +69,12 @@ protected:
 class TensorPtr : public std::shared_ptr<Tensor> {
 public:
     using std::shared_ptr<Tensor>::shared_ptr;
+    using super = std::shared_ptr<Tensor>;
+
+    TensorPtr(const TensorPtr &other) : super(other) {}
+
+    TensorPtr(const std::shared_ptr<Tensor> &other) : super(other) {}
+    TensorPtr(std::shared_ptr<Tensor> &&other) : super(std::forward<std::shared_ptr<Tensor>>(other)) {}
 
     template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
     TensorPtr(T value);
@@ -85,8 +91,10 @@ public:
     TensorPtr expand(const ShapeVec &shape) const;
 
     TensorPtr narrow(ssize_t axis, ssize_t start, ssize_t length);
-    TensorPtr index_select(const TensorPtr &indices, ssize_t axis);
-    TensorPtr gather(const TensorPtr &indices, ssize_t axis);
+    TensorPtr index_select(ssize_t axis, const TensorPtr &indices);
+    TensorPtr gather(ssize_t axis, const TensorPtr &indices);
+
+    friend std::ostream &operator << (std::ostream &out, const TensorPtr &tensor);
 };
 
 typedef std::vector<TensorPtr> TensorVec;
@@ -183,8 +191,8 @@ TensorPtr expand(TensorPtr a, const ShapeVec &shape);
 TensorPtr concat(const TensorVec &a, ssize_t axis);
 TensorVec split(TensorPtr a, ssize_t axis, const ShapeVec &splits);
 TensorPtr narrow(TensorPtr a, ssize_t axis, ssize_t start, ssize_t length);
-TensorPtr index_select(TensorPtr a, TensorPtr b, ssize_t axis);
-TensorPtr gather(TensorPtr a, TensorPtr b, ssize_t axis);
+TensorPtr index_select(TensorPtr a, ssize_t axis, TensorPtr b);
+TensorPtr gather(TensorPtr a, ssize_t axis, TensorPtr b);
 
 TensorPtr operator + (const TensorPtr &a, const TensorPtr &b);
 TensorPtr operator - (const TensorPtr &a, const TensorPtr &b);
