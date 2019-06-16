@@ -14,7 +14,7 @@
 
 namespace ncg {
 
-class ElemWiseOp : public Op {
+class OpElemwiseBase : public Op {
 public:
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
@@ -23,11 +23,85 @@ public:
     }
 };
 
-template <typename OpKernel>
-class UnaryElemWiseOp : public ElemWiseOp {
+class OpCastDesc : public OpDesc {
+public:
+    OpCastDesc() : dtype(DTypeName::Int8) {}
+    OpCastDesc(DTypeName dtype) : dtype(dtype) {}
+    virtual ~OpCastDesc() = default;
+
+    DTypeName dtype;
+};
+
+class OpCast : public OpElemwiseBase {
 public:
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        ElemWiseOp::check_inputs(ctx, inputs);
+        OpElemwiseBase::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto &desc = this->template desc<OpCastDesc>();
+        TensorPtr output = empty(desc.dtype, inputs[0]->desc().shape_vec());
+
+#define CAST_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), CAST_COMPUTE_DTYPE);
+#undef CAST_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto a = inputs[0]->as<DT>();
+        auto b = output->as<DT>();
+        for (ssize_t i = 0; i < n; ++i) {
+            b->mutable_elat(i) = a->elat(i);
+        }
+    }
+};
+
+class OpCond : public OpElemwiseBase {
+public:
+    NCG_OP_DEF_NAME(OpCond);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        OpElemwiseBase::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 3);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        TensorPtr output = empty(inputs[2]->desc().dtype(), inputs[2]->desc().shape_vec());
+
+#define COND_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), COND_COMPUTE_DTYPE);
+#undef COND_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto a = inputs[0]->as<DT>();
+        auto b = inputs[1]->as<DT>();
+        auto c = inputs[2]->as<DT>();
+        auto d = output->as<DT>();
+        for (ssize_t i = 0; i < n; ++i) {
+            d->mutable_elat(i) = a->elat(i) > 0 ? b->elat(i) : c->mutable_elat(i);
+        }
+    }
+};
+
+template <typename OpKernel>
+class OpUnaryElemwiseBase : public OpElemwiseBase {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        OpElemwiseBase::check_inputs(ctx, inputs);
         NCG_OP_CHECK_CTX_CLEAN(ctx);
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
     }
@@ -35,7 +109,7 @@ public:
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
 
-#define UNARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+#define UNARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
 NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
 #undef UNARY_COMPUTE_DTYPE
 
@@ -44,7 +118,7 @@ NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
 
 private:
     template <DTypeName DT>
-    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
         size_t n = inputs[0]->desc().numel();
         auto kernel = OpKernel();
         auto a = inputs[0]->as<DT>();
@@ -56,10 +130,10 @@ private:
 };
 
 template <typename OpKernel>
-class BinaryElemWiseOp : public ElemWiseOp {
+class OpBinaryElemwiseBase : public OpElemwiseBase {
 public:
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        ElemWiseOp::check_inputs(ctx, inputs);
+        OpElemwiseBase::check_inputs(ctx, inputs);
         NCG_OP_CHECK_CTX_CLEAN(ctx);
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
     }
@@ -68,7 +142,7 @@ public:
         size_t n = inputs[0]->desc().numel();
         TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
 
-#define BINARY_COMPUTE_DTYPE(dtype) compute_inner_<DTypeName::dtype>(ctx, inputs, output)
+#define BINARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
 NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
 #undef BINARY_COMPUTE_DTYPE
 
@@ -77,7 +151,7 @@ NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
 
 private:
     template <DTypeName DT>
-    void compute_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
         size_t n = inputs[0]->desc().numel();
         auto kernel = OpKernel();
         auto a = inputs[0]->as<DT>();
@@ -205,7 +279,7 @@ struct BinaryOpKernel {
 } /* !namespace <anonymous> */
 
 #define DEF_UNARY_ELEMWISE_OP(name) \
-class Op##name : public UnaryElemWiseOp<UnaryOpKernel<UnaryOpKernelType::name>> { \
+class Op##name : public OpUnaryElemwiseBase<UnaryOpKernel<UnaryOpKernelType::name>> { \
 public: \
     NCG_OP_DEF_NAME(Op##name); \
 }
@@ -223,7 +297,7 @@ DEF_UNARY_ELEMWISE_OP(Reciprocal);
 #undef DEF_UNARY_ELEMWISE_OP
 
 #define DEF_BINARY_ELEMWISE_OP(name) \
-class Op##name : public BinaryElemWiseOp<BinaryOpKernel<BinaryOpKernelType::name>> { \
+class Op##name : public OpBinaryElemwiseBase<BinaryOpKernel<BinaryOpKernelType::name>> { \
 public: \
     NCG_OP_DEF_NAME(Op##name); \
 }

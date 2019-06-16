@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include "core/tensor.h"
 #include "core/tensor_impl.h"
 #include "core/ops/shape.h"
-#include "graph/tensor.h"
+
 #include "graph/op.h"
 
 namespace ncg {
@@ -158,22 +159,7 @@ public:
         }
     }
 
-    virtual void backward(Graph &graph, GTensorPtr loss) {
-        if (m_inputs.size() == 2) {
-            m_inputs[1]->set_grad(graph, loss, nullptr);
-        }
-
-        auto output_grad = m_outputs[0]->grad(loss);
-        if (output_grad == nullptr) {
-            m_inputs[0]->set_grad(graph, loss, nullptr);
-            return;
-        }
-
-        m_inputs[0]->set_grad(graph, loss, graph.op<GOpReshape>(
-            OpDescPtr(new OpReshapeDesc(m_inputs[0]->desc().shape_vec())),
-            output_grad
-        ));
-    }
+    virtual void backward(Graph &graph, GTensorPtr loss);
 };
 
 class GOpPermute : public GraphOp, public GraphSingleOutputOp {
@@ -186,13 +172,13 @@ public:
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto input = inputs[0];
-        const auto &axes = this->template<OpPermuteDesc>().axes();
+        const auto &axes = this->template desc<OpPermuteDesc>().axes;
 
         ShapeVec output_shape = input->desc().shape_vec();
         for (ssize_t i = 0; i < input->desc().dim(); ++i) {
             output_shape[i] = input->desc().shape(axes[i]);
         }
-        return {make_tensor(0, TensorDesc(input->desc().dtype, output_shape))};
+        return {make_tensor(0, TensorDesc(input->desc().dtype(), output_shape))};
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
@@ -204,23 +190,7 @@ public:
         ctx.set_tensor(m_outputs[0], output[0]);
     }
 
-    virtual void backward(Graph &graph, GTensorPtr loss) {
-        auto output_grad = m_outputs[0]->grad(loss);
-        if (output_grad == nullptr) {
-            m_inputs[0]->set_grad(graph, loss, nullptr);
-            return;
-        }
-
-        const auto &axes = this->template<OpPermuteDesc>().axes();
-        auto inverse_axes = ShapeVec(axes.size());
-        for (ssize_t i = 0; i < input->desc().dim(); ++i){
-            inverse_axes[axes[i]] = i;
-        }
-        m_inputs[0]->set_grad(graph, loss, graph.op<GOpPermute>(
-            OpDescPtr(new OpPermuteDesc(inverse_axes)),
-            output_grad
-        ));
-    }
+    virtual void backward(Graph &graph, GTensorPtr loss);
 };
 
 class GOpExpand : public GraphOp, public GraphSingleOutputOp {
@@ -260,29 +230,19 @@ public:
         }
     }
 
-    virtual void backward(Graph &graph, GTensorPtr loss) {
-        if (m_inputs.size() == 2) {
-            m_inputs[1]->set_grad(graph, loss, nullptr);
-        }
+    virtual void backward(Graph &graph, GTensorPtr loss);
+};
 
-        auto output_grad = m_outputs[0]->grad(loss);
-        if (output_grad == nullptr) {
-            m_inputs[0]->set_grad(graph, loss, nullptr);
-            return;
-        }
+class GOpSqueeze : public GraphOpWrapper<OpSqueeze>, public GraphSingleOutputOp {
+public:
+    NCG_GOP_DEF_NAME(GOpSqueeze);
+    virtual void backward(Graph &graph, GTensorPtr loss);
+};
 
-        auto grad = output_grad;
-        for (ssize_t i = 0; i < m_outputs[0]->desc().dim(); ++i) {
-            if (m_inputs[0]->desc().shape(i) != m_outputs[0]->desc().shape(i)) {
-                grad = graph.op<GOpReduceSum>(
-                    OpDescPtr(OpReduceDesc(i, true)),
-                    grad
-                );
-            }
-        }
-
-        m_inputs[0]->set_grad(graph, loss, grad);
-    }
+class GOpUnsqueeze : public GraphOpWrapper<OpUnsqueeze>, public GraphSingleOutputOp {
+public:
+    NCG_GOP_DEF_NAME(GOpSqueeze);
+    virtual void backward(Graph &graph, GTensorPtr loss);
 };
 
 // auto broadcast

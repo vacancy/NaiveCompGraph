@@ -8,6 +8,7 @@
 #pragma once
 
 #include "core/common.h"
+#include "core/op.h"
 #include "graph/tensor.h"
 
 #include <cstdint>
@@ -94,6 +95,7 @@ public:
     typename std::enable_if<std::is_base_of<GraphSingleOutputOp, OpClass>::value, GTensorPtr>::type
     op(OpDescPtr desc, Tensors &&... args) {
         auto op = make_op<OpClass>(desc, std::forward<Tensors>(args)...);
+        ncg_assert(op->outputs().size() == 1);
         return op->outputs()[0];
     }
 
@@ -101,6 +103,7 @@ public:
     typename std::enable_if<std::is_base_of<GraphSingleOutputOp, OpClass>::value, GTensorPtr>::type
     op(const std::string &name, OpDescPtr desc, Tensors &&... args) {
         auto op = make_op<OpClass>(name, desc, std::forward<Tensors>(args)...);
+        ncg_assert(op->outputs().size() == 1);
         return op->outputs()[0];
     }
 

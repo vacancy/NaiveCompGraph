@@ -111,6 +111,15 @@ NCG_DTYPE_SWITCH_ALL(dtype, ARANGE_DTYPE_CASE);
     return s;
 }
 
+TensorPtr cast(TensorPtr a, DTypeName dtype) {
+    auto ctx = OpContext();
+    auto op = OpCast();
+    op.set_desc(OpDescPtr(new OpCastDesc(dtype)));
+    auto output_vec = op.execute(ctx, {a});
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    return ctx.ok() ? output_vec[0] : nullptr;
+}
+
 #define NCG_OP_DEF_UNARY_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a) { \
     auto ctx = OpContext(); \
     auto op = Op##op_name(); \
@@ -295,6 +304,23 @@ NCG_OP_DEF_OPERATOR_FUNC(>, ge);
 NCG_OP_DEF_OPERATOR_FUNC(<, le);
 NCG_OP_DEF_OPERATOR_FUNC(>=, geq);
 NCG_OP_DEF_OPERATOR_FUNC(<=, leq);
+
+TensorPtr TensorPtr::cast(DTypeName dtype) const {
+    return ::ncg::cast(*this, dtype);
+}
+
+#define NCG_OP_DEF_OPERATOR_CAST_FUNC(op_name, dtype_name) TensorPtr TensorPtr::op_name() const { \
+    return cast(DTypeName::dtype_name); \
+}
+
+NCG_OP_DEF_OPERATOR_CAST_FUNC(int8, Int8);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(uint8, UInt8);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(int32, Int32);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(uint32, UInt32);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(int64, Int64);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(uint64, UInt64);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(float32, Float32);
+NCG_OP_DEF_OPERATOR_CAST_FUNC(float64, Float64);
 
 TensorPtr TensorPtr::eq(const TensorPtr &rhs) const {
     return ::ncg::eq(*this, rhs);

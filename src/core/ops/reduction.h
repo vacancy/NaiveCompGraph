@@ -11,7 +11,6 @@
 
 namespace ncg {
 
-namespace {
 enum class ReduceType1 : int {
     Max,
     Min
@@ -22,7 +21,6 @@ enum class ReduceType2 : int {
     Mean,
     Prod
 };
-} /* !namespace <anonymous> */
 
 class OpReduceDesc : public OpDesc {
 public:

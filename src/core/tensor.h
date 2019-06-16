@@ -86,6 +86,16 @@ public:
     TensorPtr eq(const TensorPtr &rhs) const;
     TensorPtr neq(const TensorPtr &rhs) const;
 
+    TensorPtr cast(DTypeName dtype) const;
+    TensorPtr int8() const;
+    TensorPtr uint8() const;
+    TensorPtr int32() const;
+    TensorPtr uint32() const;
+    TensorPtr int64() const;
+    TensorPtr uint64() const;
+    TensorPtr float32() const;
+    TensorPtr float64() const;
+
     std::vector<TensorPtr> min(ssize_t axis, bool keepdims=false) const;
     std::vector<TensorPtr> max(ssize_t axis, bool keepdims=false) const;
     TensorPtr sum(ssize_t axis, bool keepdims=false) const;
@@ -168,6 +178,8 @@ template <typename ValueT=double>
 std::vector<ValueT> tocc_vector(TensorPtr tensor);
 
 TensorPtr arange(DTypeName dtype, int64_t begin, int64_t end = std::numeric_limits<int64_t>::min(), int64_t step=1);
+
+TensorPtr cast(TensorPtr a, DTypeName dtype);
 
 // elemwise::unary
 TensorPtr neg(TensorPtr a);

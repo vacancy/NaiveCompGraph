@@ -13,7 +13,7 @@
 namespace ncg {
 
 template <typename OpClass>
-class GraphElemWiseOp : public GraphOpWrapper<OpClass> {
+class GOpElemwiseBase : public GraphOpWrapper<OpClass> {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         NCG_OP_CHECK_NONEMPTY_INPUTS(graph, inputs);
@@ -22,11 +22,47 @@ public:
     }
 };
 
+class GOpCast : public GOpElemwiseBase<OpCast>, public GraphSingleOutputOp {
+public:
+    NCG_GOP_DEF_NAME(GOpCast);
+
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        GOpElemwiseBase<OpCast>::check_inputs(graph, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(graph);
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
+    }
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        auto dtype = this->template desc<OpCastDesc>().dtype;
+        TensorDesc desc(dtype, inputs[0]->desc().shape_vec());
+        return {this->make_tensor(0, desc)};
+    }
+
+    virtual void backward(Graph &graph, GTensorPtr loss);
+};
+
+class GOpCond : public GOpElemwiseBase<OpCond>, public GraphSingleOutputOp {
+public:
+    NCG_GOP_DEF_NAME(GOpCond);
+
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        GOpElemwiseBase::check_inputs(graph, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(graph);
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 3);
+    }
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        return {make_tensor(0, inputs[2]->desc())};
+    }
+
+    virtual void backward(Graph &graph, GTensorPtr loss);
+};
+
 template <typename OpClass>
-class GraphUnaryElemWiseOp : public GraphElemWiseOp<OpClass>, public GraphSingleOutputOp {
+class GOpUnaryElemwiseBase : public GOpElemwiseBase<OpClass>, public GraphSingleOutputOp {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
-        GraphElemWiseOp<OpClass>::check_inputs(graph, inputs);
+        GOpElemwiseBase<OpClass>::check_inputs(graph, inputs);
         NCG_OP_CHECK_CTX_CLEAN(graph);
         NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
     }
@@ -35,14 +71,13 @@ public:
         TensorDesc desc(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
         return {this->make_tensor(0, desc)};
     }
-
 };
 
 template <typename OpClass>
-class GraphBinaryElemWiseOp : public GraphElemWiseOp<OpClass>, public GraphSingleOutputOp {
+class GOpBinaryElemwiseBase : public GOpElemwiseBase<OpClass>, public GraphSingleOutputOp {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
-        GraphElemWiseOp<OpClass>::check_inputs(graph, inputs);
+        GOpElemwiseBase<OpClass>::check_inputs(graph, inputs);
         NCG_OP_CHECK_CTX_CLEAN(graph);
         NCG_OP_CHECK_NR_INPUTS(graph, inputs, 2);
     }
@@ -53,45 +88,47 @@ public:
     }
 };
 
-#define DEF_UNARY_GOP(name) \
-class GOp##name : public GraphUnaryElemWiseOp<Op##name> { \
+#define DEF_GOP_UNARY(name) \
+class GOp##name : public GOpUnaryElemwiseBase<Op##name> { \
 public: \
     NCG_GOP_DEF_NAME(GOp##name); \
     virtual void backward(Graph &graph, GTensorPtr loss); \
 }
 
-DEF_UNARY_GOP(Neg);
-DEF_UNARY_GOP(Sin);
-DEF_UNARY_GOP(Cos);
-DEF_UNARY_GOP(Tan);
-DEF_UNARY_GOP(Log);
-DEF_UNARY_GOP(Exp);
-DEF_UNARY_GOP(Tanh);
-DEF_UNARY_GOP(Sigmoid);
-DEF_UNARY_GOP(Reciprocal);
+DEF_GOP_UNARY(Neg);
+DEF_GOP_UNARY(Sin);
+DEF_GOP_UNARY(Cos);
+DEF_GOP_UNARY(Tan);
+DEF_GOP_UNARY(Log);
+DEF_GOP_UNARY(Exp);
+DEF_GOP_UNARY(Tanh);
+DEF_GOP_UNARY(Sigmoid);
+DEF_GOP_UNARY(Reciprocal);
 
-#undef DEF_UNARY_GOP
+#undef DEF_GOP_UNARY
 
-#define DEF_BINARY_GOP(name) \
-class GOp##name : public GraphBinaryElemWiseOp<Op##name> { \
+#define DEF_GOP_BINARY(name) \
+class GOp##name : public GOpBinaryElemwiseBase<Op##name> { \
 public: \
     NCG_GOP_DEF_NAME(GOp##name); \
     virtual void backward(Graph &graph, GTensorPtr loss); \
 }
 
-DEF_BINARY_GOP(Add);
-DEF_BINARY_GOP(Sub);
-DEF_BINARY_GOP(Mul);
-DEF_BINARY_GOP(Div);
-DEF_BINARY_GOP(Ge);
-DEF_BINARY_GOP(Le);
-DEF_BINARY_GOP(Geq);
-DEF_BINARY_GOP(Leq);
-DEF_BINARY_GOP(Eq);
-DEF_BINARY_GOP(Neq);
-DEF_BINARY_GOP(Pow);
+DEF_GOP_BINARY(Add);
+DEF_GOP_BINARY(Sub);
+DEF_GOP_BINARY(Mul);
+DEF_GOP_BINARY(Div);
+DEF_GOP_BINARY(Ge);
+DEF_GOP_BINARY(Le);
+DEF_GOP_BINARY(Geq);
+DEF_GOP_BINARY(Leq);
+DEF_GOP_BINARY(Eq);
+DEF_GOP_BINARY(Neq);
+DEF_GOP_BINARY(Pow);
+DEF_GOP_BINARY(Min);
+DEF_GOP_BINARY(Max);
 
-#undef DEF_BINARY_GOP
+#undef DEF_GOP_BINARY
 
 } /* !namespace ncg */
 

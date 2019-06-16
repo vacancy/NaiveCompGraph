@@ -14,6 +14,8 @@
 #include "graph/ops/shape.h"
 #include "graph/ops/update.h"
 
+#include <algorithm>
+
 namespace ncg {
 
 GraphTensor::GraphTensor() : m_owner_op(), m_owner_op_index(0), m_desc() {
@@ -100,6 +102,10 @@ GTensorPtr as_gtensor(const TensorPtr &value) {
     return G::constant(value);
 }
 
+GTensorPtr as_gtensor(Graph &graph, const TensorPtr &value) {
+    return graph.op<GOpConstant>(OpDescPtr(new ::ncg::GOpConstantDesc(value)));
+}
+
 namespace G {
 
 #define NCG_GOP_DEF_UNRAY_FUNC(op_name, gop_name) GTensorPtr op_name(GTensorPtr a) { \
@@ -133,6 +139,53 @@ NCG_GOP_DEF_BINARY_FUNC(leq, Leq);
 NCG_GOP_DEF_BINARY_FUNC(eq, Eq);
 NCG_GOP_DEF_BINARY_FUNC(neq, Neq);
 NCG_GOP_DEF_BINARY_FUNC(pow, Pow);
+NCG_GOP_DEF_BINARY_FUNC(min, Min);
+NCG_GOP_DEF_BINARY_FUNC(max, Max);
+
+GTensorVec auto_broadcast(Graph &graph, const GTensorVec &a) {
+    if (a.size() == 0) return GTensorVec();
+
+    size_t max_dim = 0;
+    for (auto &i : a) {
+        max_dim = std::max(max_dim, i->desc().dim());
+    }
+
+    auto b = a;
+    if (max_dim == 0) {
+        return a;
+    } else {
+        ShapeVec full_shape(max_dim, 1);
+        for (ssize_t i = 0; i < a.size(); ++i) {
+            if (a[i]->desc().dim() == 0) {
+                b[i] = graph.op<GOpReshape>(OpDescPtr(new OpReshapeDesc(full_shape)), a[i]);
+            }
+        }
+    }
+
+    auto dyn_shape = graph.op<GOpShapeOf>(nullptr, a[0]);
+    auto sta_shape = a[0]->desc().shape_vec();
+    for (ssize_t i = 1; i < a.size(); ++i) {
+        dyn_shape = graph.op<GOpMax>(nullptr, dyn_shape, graph.op<GOpShapeOf>(nullptr, a[i]));
+        auto sta_shape_new = a[i]->desc().shape_vec();
+
+        ncg_assert(sta_shape.size() == sta_shape_new.size());
+
+        for (ssize_t j = 0; j < sta_shape.size(); ++j) {
+            sta_shape[j] = std::max(sta_shape[j], sta_shape_new[j]);
+        }
+    }
+
+    for (ssize_t i = 0; i < b.size(); ++i) {
+        b[i] = graph.op<GOpExpand>(OpDescPtr(new OpExpandDesc(sta_shape)), b[i], dyn_shape);
+    }
+
+    return b;
+}
+
+GTensorVec auto_broadcast(const GTensorVec &a) {
+    Graph &g = get_default_graph();
+    return auto_broadcast(g, a);
+}
 
 GTensorPtr placeholder(std::string name, const ShapeVec &shape, DTypeName dtype) {
     Graph &g = get_default_graph();
@@ -179,7 +232,7 @@ GTensorPtr shapeof(GTensorPtr a, ssize_t axis) {
     return g.op<GOpShapeOfIndex>(OpDescPtr(new ::ncg::OpShapeOfIndexDesc(axis)), a);
 }
 
-GTensorPtr shape_cat(GTensorVec a) {
+GTensorPtr shape_cat(const GTensorVec &a) {
     Graph &g = get_default_graph();
     return g.op<GOpShapeConcat>(nullptr, a);
 }

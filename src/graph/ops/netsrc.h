@@ -18,9 +18,7 @@ public:
         NCG_OP_CHECK_EMPTY_INPUTS(graph, inputs);
     }
 
-    virtual void backward(Graph &graph, GTensorPtr loss) {
-        // NOP.
-    }
+    NCG_GOP_DEF_NO_GRAD_INLINE;
 };
 
 class GOpPlaceholderDesc : public OpDesc {
@@ -96,6 +94,18 @@ public:
     }
 };
 
+class GraphNetSrcOpDynamicShape : public GraphOp, public GraphSingleOutputOp {
+public:
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS2(graph, inputs, 0, 1);
+        if (inputs.size() == 1) {
+            NCG_OP_CHECK_INPUT_VECTOR(graph, inputs, 0);
+        }
+    }
+
+    NCG_GOP_DEF_NO_GRAD_INLINE;
+};
+
 class OpZerosDesc : public OpDesc {
 public:
     OpZerosDesc() : desc() {}
@@ -105,7 +115,7 @@ public:
     TensorDesc desc;
 };
 
-class GOpZeros: public GraphNetSrcOp {
+class GOpZeros: public GraphNetSrcOpDynamicShape {
 public:
     NCG_GOP_DEF_NAME(GOpZeros);
 
@@ -114,7 +124,15 @@ public:
     }
     virtual void forward(GraphForwardContext &ctx) const {
         auto &desc = this->template desc<OpZerosDesc>().desc;
-        auto tensor = zeros(desc.dtype(), desc.shape_vec());
+
+        ShapeVec shape;
+        if (m_inputs.size() == 0) {
+            shape = desc.shape_vec();
+        } else {
+            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[1]));
+            shape = ShapeVec(tmp_shape.begin(), tmp_shape.end());
+        }
+        auto tensor = zeros(desc.dtype(), shape);
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };
@@ -128,7 +146,7 @@ public:
     TensorDesc desc;
 };
 
-class GOpOnes: public GraphNetSrcOp {
+class GOpOnes: public GraphNetSrcOpDynamicShape {
 public:
     NCG_GOP_DEF_NAME(GOpZeros);
 
@@ -137,7 +155,14 @@ public:
     }
     virtual void forward(GraphForwardContext &ctx) const {
         auto &desc = this->template desc<OpOnesDesc>().desc;
-        auto tensor = ones(desc.dtype(), desc.shape_vec());
+        ShapeVec shape;
+        if (m_inputs.size() == 0) {
+            shape = desc.shape_vec();
+        } else {
+            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[1]));
+            shape = ShapeVec(tmp_shape.begin(), tmp_shape.end());
+        }
+        auto tensor = zeros(desc.dtype(), shape);
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };

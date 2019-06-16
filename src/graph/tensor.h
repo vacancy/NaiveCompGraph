@@ -62,17 +62,34 @@ GTensorPtr as_gtensor(const TensorPtr &value);
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
 as_gtensor(T value) {
-    return GTensorPtr(fromcc(CCType<T>::identifier, value));
+    return as_gtensor(fromcc(CCType<T>::identifier, value));
 }
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
 as_gtensor(std::vector<T> value) {
-    return GTensorPtr(fromcc(CCType<T>::identifier, value));
+    return as_gtensor(fromcc(CCType<T>::identifier, value));
 }
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
 as_gtensor(std::vector<std::vector<T>> value) {
-    return GTensorPtr(fromcc(CCType<T>::identifier, value));
+    return as_gtensor(fromcc(CCType<T>::identifier, value));
+}
+
+GTensorPtr as_gtensor(Graph &graph, const TensorPtr &value);
+template <typename T>
+typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
+as_gtensor(Graph &graph, T value) {
+    return as_gtensor(graph, fromcc(CCType<T>::identifier, value));
+}
+template <typename T>
+typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
+as_gtensor(Graph &graph, std::vector<T> value) {
+    return as_gtensor(graph, fromcc(CCType<T>::identifier, value));
+}
+template <typename T>
+typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
+as_gtensor(Graph &graph, std::vector<std::vector<T>> value) {
+    return as_gtensor(graph, fromcc(CCType<T>::identifier, value));
 }
 
 template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type*>
@@ -139,6 +156,11 @@ GTensorPtr leq(GTensorPtr a, GTensorPtr b);
 GTensorPtr eq(GTensorPtr a, GTensorPtr b);
 GTensorPtr neq(GTensorPtr a, GTensorPtr b);
 GTensorPtr pow(GTensorPtr a, GTensorPtr b);
+GTensorPtr min(GTensorPtr a, GTensorPtr b);
+GTensorPtr max(GTensorPtr a, GTensorPtr b);
+
+GTensorVec auto_broadcast(Graph &graph, const GTensorVec &a);
+GTensorVec auto_broadcast(const GTensorVec &a);
 
 GTensorPtr placeholder(std::string name, const ShapeVec &shape, DTypeName dtype=DTypeName::Float32);
 GTensorPtr constant(TensorPtr value);
@@ -152,7 +174,7 @@ GTensorPtr assign(GTensorPtr a, GTensorPtr b);
 
 GTensorPtr shapeof(GTensorPtr a);
 GTensorPtr shapeof(GTensorPtr a, ssize_t axis);
-GTensorPtr shape_cat(GTensorVec a);
+GTensorPtr shape_cat(const GTensorVec &a);
 
 } /* !namespace graph */
 

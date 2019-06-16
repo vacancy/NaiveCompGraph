@@ -7,8 +7,33 @@
 
 #include "graph/ops/elemwise.h"
 #include "graph/ops/netsrc.h"
+#include "graph/ops/shape.h"
 
 namespace ncg {
+
+void GOpCast::backward(Graph &graph, GTensorPtr loss) {
+    auto output_grad = m_outputs[0]->grad(loss);
+    if (output_grad == nullptr) {
+        m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
+    }
+
+    m_inputs[0]->set_grad(graph, loss,
+        graph.op<GOpCast>(OpDescPtr(new OpCastDesc(m_inputs[0]->desc().dtype())), output_grad)
+    );
+}
+
+void GOpCond::backward(Graph &graph, GTensorPtr loss) {
+    auto output_grad = m_outputs[0]->grad(loss);
+    auto zero_grad = graph.op<GOpZeros>(
+        OpDescPtr(new OpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())),
+        graph.op<GOpShapeOf>(nullptr, output_grad)
+    );
+
+    m_inputs[0]->set_grad(graph, loss, nullptr);
+    m_inputs[1]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, m_inputs[0], output_grad, zero_grad));
+    m_inputs[2]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, m_inputs[0], zero_grad, output_grad));
+}
 
 void GOpNeg::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
@@ -108,9 +133,8 @@ void GOpTanh::backward(Graph &graph, GTensorPtr loss) {
         graph.op<GOpMul>(nullptr, output_grad,
             graph.op<GOpSub>(nullptr,
                 graph.op<GOpOnes>(
-                    OpDescPtr(new OpOnesDesc(
-                        m_inputs[0]->desc().dtype(), m_inputs[0]->desc().shape_vec()
-                    ))
+                    OpDescPtr(new OpOnesDesc(m_inputs[0]->desc().dtype(), m_inputs[0]->desc().shape_vec())),
+                    graph.op<GOpShapeOf>(nullptr, m_inputs[0])
                 ),
                 graph.op<GOpMul>(nullptr, m_outputs[0], m_outputs[0])
             )
@@ -131,9 +155,8 @@ void GOpSigmoid::backward(Graph &graph, GTensorPtr loss) {
                 m_outputs[0],
                 graph.op<GOpSub>(nullptr,
                     graph.op<GOpOnes>(
-                        OpDescPtr(new OpOnesDesc(
-                            m_inputs[0]->desc().dtype(), m_inputs[0]->desc().shape_vec()
-                        ))
+                        OpDescPtr(new OpOnesDesc(m_inputs[0]->desc().dtype(), m_inputs[0]->desc().shape_vec())),
+                        graph.op<GOpShapeOf>(nullptr, m_inputs[0])
                     ),
                     m_outputs[0]
                 )
@@ -255,7 +278,8 @@ void GOpPow::backward(Graph &graph, GTensorPtr loss) {
                         graph.op<GOpOnes>(
                             OpDescPtr(new OpOnesDesc(
                                 m_inputs[1]->desc().dtype(), m_inputs[1]->desc().shape_vec()
-                            ))
+                            )),
+                            graph.op<GOpShapeOf>(nullptr, m_inputs[1])
                         )
                     )
                 )
@@ -271,6 +295,42 @@ void GOpPow::backward(Graph &graph, GTensorPtr loss) {
             )
         )
     );
+}
+
+void GOpMin::backward(Graph &graph, GTensorPtr loss) {
+    auto output_grad = m_outputs[0]->grad(loss);
+    if (output_grad == nullptr) {
+        m_inputs[0]->set_grad(graph, loss, nullptr);
+        m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
+    }
+
+    auto cond = graph.op<GOpLeq>(nullptr, m_inputs[0], m_inputs[1]);
+    auto zero_grad = graph.op<GOpZeros>(
+        OpDescPtr(new OpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())),
+        graph.op<GOpShapeOf>(nullptr, output_grad)
+    );
+    m_inputs[0]->set_grad(graph, loss, nullptr);
+    m_inputs[1]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, cond, output_grad, zero_grad));
+    m_inputs[2]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, cond, zero_grad, output_grad));
+}
+
+void GOpMax::backward(Graph &graph, GTensorPtr loss) {
+    auto output_grad = m_outputs[0]->grad(loss);
+    if (output_grad == nullptr) {
+        m_inputs[0]->set_grad(graph, loss, nullptr);
+        m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
+    }
+
+    auto cond = graph.op<GOpGeq>(nullptr, m_inputs[0], m_inputs[1]);
+    auto zero_grad = graph.op<GOpZeros>(
+        OpDescPtr(new OpZerosDesc(output_grad->desc().dtype(), output_grad->desc().shape_vec())),
+        graph.op<GOpShapeOf>(nullptr, output_grad)
+    );
+    m_inputs[0]->set_grad(graph, loss, nullptr);
+    m_inputs[1]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, cond, output_grad, zero_grad));
+    m_inputs[2]->set_grad(graph, loss, graph.op<GOpCond>(nullptr, cond, zero_grad, output_grad));
 }
 
 } /* !namespace ncg */
