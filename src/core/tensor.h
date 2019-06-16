@@ -159,6 +159,12 @@ template <typename ValueT = double>
 typename std::enable_if<std::is_arithmetic<ValueT>::value, TensorPtr>::type
 fromcc(DTypeName dtype, std::vector<std::vector<ValueT>> values);
 
+template <typename ValueT=double>
+ValueT tocc_scalar(TensorPtr tensor);
+
+template <typename ValueT=double>
+std::vector<ValueT> tocc_vector(TensorPtr tensor);
+
 TensorPtr arange(DTypeName dtype, int64_t begin, int64_t end = std::numeric_limits<int64_t>::min(), int64_t step=1);
 
 // elemwise::unary
