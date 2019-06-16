@@ -50,10 +50,29 @@ public:
 
     virtual void backward(GTensorPtr loss);
 
+    template <typename OpClass>
+    GOpPtr make_op(OpDescPtr desc, const TensorVec &inputs) {
+        auto op = new OpClass();
+        (*op)(*this, desc, inputs);
+        auto op_ptr = GOpPtr(op);
+        m_ops.push_back(op_ptr);
+        return op_ptr;
+    }
+
     template <typename OpClass, typename... Tensors>
     GOpPtr make_op(OpDescPtr desc, Tensors &&... args) {
         auto op = new OpClass();
         (*op)(*this, desc, {std::forward<Tensors>(args)...});
+        auto op_ptr = GOpPtr(op);
+        m_ops.push_back(op_ptr);
+        return op_ptr;
+    }
+
+    template <typename OpClass, typename... Tensors>
+    GOpPtr make_op(const std::string &name, OpDescPtr desc, const TensorVec &inputs) {
+        auto op = new OpClass();
+        op->set_name(name);
+        (*op)(*this, desc, inputs);
         auto op_ptr = GOpPtr(op);
         m_ops.push_back(op_ptr);
         return op_ptr;

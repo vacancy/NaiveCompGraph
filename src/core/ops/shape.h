@@ -5,8 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_OPS_SHAPE_H
-#define CORE_OPS_SHAPE_H
+#pragma once
 
 #include "core/op.h"
 
@@ -219,4 +218,3 @@ class OpAutoBroadcast : public Op {
 
 } /* !namespace ncg */
 
-#endif /* !CORE_OPS_SHAPE_H */

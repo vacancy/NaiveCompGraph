@@ -12,6 +12,7 @@
 #include "core/op.h"
 #include "core/ops/elemwise.h"
 #include "core/ops/linalg.h"
+#include "core/ops/reduction.h"
 #include "core/ops/shape.h"
 #include "core/ops/slice.h"
 

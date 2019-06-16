@@ -10,6 +10,7 @@
 #include "core/op.h"
 #include "ops/elemwise.h"
 #include "ops/linalg.h"
+#include "ops/reduction.h"
 #include "ops/shape.h"
 #include "ops/slice.h"
 
@@ -147,6 +148,8 @@ NCG_OP_DEF_BINARY_FUNC(leq, Leq);
 NCG_OP_DEF_BINARY_FUNC(eq, Eq);
 NCG_OP_DEF_BINARY_FUNC(neq, Neq);
 NCG_OP_DEF_BINARY_FUNC(pow, Pow);
+NCG_OP_DEF_BINARY_FUNC(min, Min);
+NCG_OP_DEF_BINARY_FUNC(max, Max);
 
 TensorPtr matmul(TensorPtr a, TensorPtr b, bool transpose_a, bool transpose_b) {
     auto ctx = OpContext();
@@ -156,6 +159,31 @@ TensorPtr matmul(TensorPtr a, TensorPtr b, bool transpose_a, bool transpose_b) {
     ncg_assert_msg(!ctx.is_error(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
+
+#define NCG_OP_DEF_REDUCE_TYPE1_FUNC(func_name, op_name) TensorVec func_name(TensorPtr a, ssize_t axis, bool keepdims) { \
+    auto ctx = OpContext(); \
+    auto op = Op##op_name(); \
+    op.set_desc(OpDescPtr(new OpReduceDesc(axis, keepdims))); \
+    auto output_vec = op.execute(ctx, {a}); \
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    return output_vec; \
+}
+
+NCG_OP_DEF_REDUCE_TYPE1_FUNC(reduce_min, ReduceMin);
+NCG_OP_DEF_REDUCE_TYPE1_FUNC(reduce_max, ReduceMax);
+
+#define NCG_OP_DEF_REDUCE_TYPE2_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, ssize_t axis, bool keepdims) { \
+    auto ctx = OpContext(); \
+    auto op = Op##op_name(); \
+    op.set_desc(OpDescPtr(new OpReduceDesc(axis, keepdims))); \
+    auto output_vec = op.execute(ctx, {a}); \
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    return ctx.ok() ? output_vec[0] : nullptr; \
+}
+
+NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_sum, ReduceSum);
+NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_mean, ReduceMean);
+NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_prod, ReduceProd);
 
 #define NCG_OP_DEF_SHAPE_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, const ShapeVec &b) { \
     auto ctx = OpContext(); \
@@ -235,6 +263,16 @@ TensorPtr TensorPtr::eq(const TensorPtr &rhs) const {
 TensorPtr TensorPtr::neq(const TensorPtr &rhs) const {
     return ::ncg::neq(*this, rhs);
 }
+
+#define NCG_OP_DEF_REDUCE_OPERATOR_FUNC(func_name, return_type) Tensor##return_type TensorPtr::func_name(ssize_t axis, bool keepdims) const { \
+    return ::ncg::reduce_##func_name(*this, axis, keepdims); \
+}
+
+NCG_OP_DEF_REDUCE_OPERATOR_FUNC(min, Vec);
+NCG_OP_DEF_REDUCE_OPERATOR_FUNC(max, Vec);
+NCG_OP_DEF_REDUCE_OPERATOR_FUNC(sum, Ptr);
+NCG_OP_DEF_REDUCE_OPERATOR_FUNC(mean, Ptr);
+NCG_OP_DEF_REDUCE_OPERATOR_FUNC(prod, Ptr);
 
 TensorPtr TensorPtr::reshape(const ShapeVec &shape) const {
     return ::ncg::reshape(*this, shape);

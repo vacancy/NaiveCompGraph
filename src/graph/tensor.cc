@@ -169,6 +169,21 @@ GTensorPtr assign(GTensorPtr a, GTensorPtr b) {
     return g.op<GOpAssign>(nullptr, a, b);
 }
 
+GTensorPtr shapeof(GTensorPtr a) {
+    Graph &g = get_default_graph();
+    return g.op<GOpShapeOf>(nullptr, a);
+}
+
+GTensorPtr shapeof(GTensorPtr a, ssize_t axis) {
+    Graph &g = get_default_graph();
+    return g.op<GOpShapeOfIndex>(OpDescPtr(new ::ncg::OpShapeOfIndexDesc(axis)), a);
+}
+
+GTensorPtr shape_cat(GTensorVec a) {
+    Graph &g = get_default_graph();
+    return g.op<GOpShapeConcat>(nullptr, a);
+}
+
 } /* !namespace graph */
 
 } /* !namespace ncg */

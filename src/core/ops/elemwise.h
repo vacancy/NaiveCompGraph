@@ -160,6 +160,8 @@ enum class BinaryOpKernelType : int {
     Eq,
     Neq,
     Pow,
+    Min,
+    Max
 };
 
 template <BinaryOpKernelType OpType>
@@ -194,6 +196,8 @@ struct BinaryOpKernel {
             case BinaryOpKernelType::Eq: c = a == b; break;
             case BinaryOpKernelType::Neq: c = a != b; break;
             case BinaryOpKernelType::Pow: c = std::pow(a, b); break;
+            case BinaryOpKernelType::Min: c = std::min(a, b); break;
+            case BinaryOpKernelType::Max: c = std::max(a, b); break;
         }
     }
 };
@@ -235,6 +239,8 @@ DEF_BINARY_ELEMWISE_OP(Leq);
 DEF_BINARY_ELEMWISE_OP(Eq);
 DEF_BINARY_ELEMWISE_OP(Neq);
 DEF_BINARY_ELEMWISE_OP(Pow);
+DEF_BINARY_ELEMWISE_OP(Min);
+DEF_BINARY_ELEMWISE_OP(Max);
 
 #undef DEF_BINARY_ELEMWISE_OP
 

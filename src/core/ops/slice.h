@@ -172,6 +172,75 @@ public:
     }
 };
 
+class OpNarrowBackwardDesc : public OpDesc {
+public:
+    OpNarrowBackwardDesc() : axis(0), start(0), input_size(0) {}
+    OpNarrowBackwardDesc(ssize_t axis, ssize_t start, ssize_t input_size) : axis(axis), start(start), input_size(input_size) {}
+    virtual ~OpNarrowBackwardDesc() = default;
+
+    ssize_t axis, start, input_size;
+};
+
+class OpNarrowBackward : public Op {
+public:
+    NCG_OP_DEF_NAME(OpNarrowBackward);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+
+        auto input = inputs[0];
+        input->make_contiguous();
+
+        auto output_desc = input->desc();
+        output_desc.shape(desc.axis) = desc.input_size;
+        ssize_t output_data_ptr_offset = input->data_ptr_offset() - output_desc.stride(desc.axis) * desc.start;
+        TensorPtr output = tensor(output_desc, input->storage(), false, output_data_ptr_offset);
+
+        return {output};
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto &desc = this->template desc<OpNarrowBackwardDesc>();
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape[desc.axis] = desc.input_size;
+        auto output = zeros(inputs[0]->desc().dtype(), shape);
+
+#define NARROWBACKWARD_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), output->template as<DTypeName::dtype>(), desc.axis, desc.start);
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), NARROWBACKWARD_DTYPE_CASE);
+#undef NARROWBACKWARD_DTYPE_CASE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, TensorImpl<DT> *output, ssize_t axis, ssize_t start) {
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < input->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / input_default_stride[axis - 1];
+                j2 = (i % input_default_stride[axis - 1]) / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            }
+
+            ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + (j2 + start) * output_default_stride[axis] + j3;
+            output->mutable_elat(ii) = input->elat(i);
+        }
+    }
+};
+
 class OpIndexSelectDesc : public OpDesc {
 public:
     OpIndexSelectDesc() : axis(0) {}
@@ -183,7 +252,7 @@ public:
 
 class OpIndexSelect : public Op {
 public:
-    NCG_OP_DEF_NAME(OpNarrow);
+    NCG_OP_DEF_NAME(OpIndexSelect);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
@@ -198,12 +267,10 @@ public:
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto axis = this->template desc<OpIndexSelectDesc>().axis;
+        auto axis = this->template desc<OpIndexSelectBackwardDesc>().axis;
 
         auto shape = inputs[0]->desc().shape_vec();
         shape[axis] = inputs[1]->desc().shape(0);
-
-
         auto output = empty(inputs[0]->desc().dtype(), shape);
 
         if (inputs[1]->desc().dtype() == DTypeName::Int32) {
@@ -240,13 +307,86 @@ private:
             }
 
             ssize_t k = static_cast<ssize_t>(index->at(j2));
-            ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + j2 * input_default_stride[axis] + j3;
+            ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
 
             output->mutable_elat(i) = input->elat(ii);
         }
     }
+
 };
 
+class OpIndexSelectBackwardDesc : public OpDesc {
+public:
+    OpIndexSelectBackwardDesc() : axis(0) {}
+    OpIndexSelectBackwardDesc(ssize_t axis, ssize_t input_size) : axis(axis), input_size(input_size) {}
+    virtual ~OpIndexSelectBackwardDesc() = default;
+
+    ssize_t axis, input_size;
+};
+
+class OpIndexSelectBackward : public Op {
+public:
+    NCG_OP_DEF_NAME(OpIndexSelectBackward);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+        NCG_OP_CHECK_INPUT_DTYPE_INT(ctx, inputs, 1);
+        NCG_OP_CHECK_INPUT_DIM(ctx, inputs, 1, 1);
+
+        const auto &desc = this->template desc<OpIndexSelectBackwardDesc>();
+        if (!(0 <= desc.axis && desc.axis < inputs[0]->desc().dim())) {
+            ctx.error(this) << "Invalid axis.";
+            return;
+        }
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto &desc = this->template desc<OpIndexSelectDesc>();
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape[desc.axis] = desc.input_size;
+        auto output = zeros(inputs[0]->desc().dtype(), shape);
+
+        if (inputs[1]->desc().dtype() == DTypeName::Int32) {
+#define INDEXSELECTBACKWARD32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECTBACKWARD32_DTYPE_CASE);
+#undef INDEXSELECTBACKWARD32_DTYPE_CASE
+        } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
+#define INDEXSELECTBACKWARD64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECTBACKWARD64_DTYPE_CASE);
+#undef INDEXSELECTBACKWARD64_DTYPE_CASE
+        }
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, const TensorImpl<IndexDT> *index, TensorImpl<DT> *output) {
+        auto axis = this->template desc<OpIndexSelectBackwardDesc>().axis;
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < input->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / input_default_stride[axis - 1];
+                j2 = (i % input_default_stride[axis - 1]) / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            }
+
+            ssize_t k = static_cast<ssize_t>(index->at(j2));
+            ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + k * output_default_stride[axis] + j3;
+
+            output->mutable_elat(ii) += input->elat(i);
+        }
+    }
+};
 
 class OpGatherDesc : public OpDesc {
 public:
@@ -259,7 +399,7 @@ public:
 
 class OpGather : public Op {
 public:
-    NCG_OP_DEF_NAME(OpNarrow);
+    NCG_OP_DEF_NAME(OpGather);
 
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
@@ -320,6 +460,119 @@ private:
             }
 
             ssize_t k = static_cast<ssize_t>(index->elat(i));
+            ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
+
+            output->mutable_elat(i) = input->elat(ii);
+        }
+    }
+};
+
+class OpGatherBackwardDesc : public OpDesc {
+public:
+    OpGatherBackwardDesc() : axis(0) {}
+    OpGatherBackwardDesc(ssize_t axis, ssize_t input_size) : axis(axis), input_size(input_size) {}
+    virtual ~OpGatherBackwardDesc() = default;
+
+    ssize_t axis, input_size;
+};
+
+class OpGatherBackward : public Op {
+public:
+    NCG_OP_DEF_NAME(OpGatherBackward);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+        NCG_OP_CHECK_INPUT_DTYPE_INT(ctx, inputs, 1);
+        NCG_OP_CHECK_COMPATIBLE_DIM(ctx, inputs);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        auto axis = this->template desc<OpIndexSelectDesc>().axis;
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape[axis] = inputs[1]->desc().shape(0);
+        auto output = zeros(inputs[0]->desc().dtype(), shape);
+
+        if (inputs[1]->desc().dtype() == DTypeName::Int32) {
+#define INDEXSELECTBACKWARD32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECTBACKWARD32_DTYPE_CASE);
+#undef INDEXSELECTBACKWARD32_DTYPE_CASE
+        } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
+#define INDEXSELECTBACKWARD64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECTBACKWARD64_DTYPE_CASE);
+#undef INDEXSELECTBACKWARD64_DTYPE_CASE
+        }
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, const TensorImpl<IndexDT> *index, TensorImpl<DT> *output) {
+        auto axis = this->template desc<OpIndexSelectBackwardDesc>().axis;
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < input->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / input_default_stride[axis - 1];
+                j2 = (i % input_default_stride[axis - 1]) / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / input_default_stride[axis];
+                j3 = i % input_default_stride[axis];
+            }
+
+            ssize_t k = static_cast<ssize_t>(index->at(j2));
+            ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + k * output_default_stride[axis] + j3;
+
+            output->mutable_elat(ii) += input->elat(i);
+        }
+    }
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto &desc = this->template desc<OpGatherBackwardDesc>();
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape[desc.axis] = desc.input_size;
+        auto output = empty(inputs[0]->desc().dtype(), shape);
+
+        if (inputs[1]->desc().dtype() == DTypeName::Int32) {
+#define INDEXSELECT32_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int32>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECT32_DTYPE_CASE);
+#undef INDEXSELECT32_DTYPE_CASE
+        } else if (inputs[1]->desc().dtype() == DTypeName::Int64) {
+#define INDEXSELECT64_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), inputs[1]->template as<DTypeName::Int64>(), output->template as<DTypeName::dtype>());
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), INDEXSELECT64_DTYPE_CASE);
+#undef INDEXSELECT64_DTYPE_CASE
+        }
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT, DTypeName IndexDT>
+    void kernel_(const TensorImpl<DT> *input, const TensorImpl<IndexDT> *index, TensorImpl<DT> *output) {
+        auto axis = this->template desc<OpGatherDesc>().axis;
+        auto input_default_stride = input->desc().get_default_stride();
+        auto output_default_stride = output->desc().get_default_stride();
+
+        for (ssize_t i = 0; i < output->desc().numel(); ++i) {
+            ssize_t j1, j2, j3;
+
+            if (axis != 0) {
+                j1 = i / output_default_stride[axis - 1];
+                j2 = (i % output_default_stride[axis - 1]) / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            } else {
+                j1 = 0;
+                j2 = i / output_default_stride[axis];
+                j3 = i % output_default_stride[axis];
+            }
+
+            ssize_t k = static_cast<ssize_t>(index->at(j2));
             ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
 
             output->mutable_elat(i) = input->elat(ii);

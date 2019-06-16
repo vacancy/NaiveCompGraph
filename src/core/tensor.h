@@ -86,6 +86,12 @@ public:
     TensorPtr eq(const TensorPtr &rhs) const;
     TensorPtr neq(const TensorPtr &rhs) const;
 
+    std::vector<TensorPtr> min(ssize_t axis, bool keepdims=false) const;
+    std::vector<TensorPtr> max(ssize_t axis, bool keepdims=false) const;
+    TensorPtr sum(ssize_t axis, bool keepdims=false) const;
+    TensorPtr mean(ssize_t axis, bool keepdims=false) const;
+    TensorPtr prod(ssize_t axis, bool keepdims=false) const;
+
     TensorPtr reshape(const ShapeVec &shape) const;
     TensorPtr permute(const ShapeVec &axes) const;
     TensorPtr expand(const ShapeVec &shape) const;
@@ -178,9 +184,18 @@ TensorPtr leq(TensorPtr a, TensorPtr b);
 TensorPtr eq(TensorPtr a, TensorPtr b);
 TensorPtr neq(TensorPtr a, TensorPtr b);
 TensorPtr pow(TensorPtr a, TensorPtr b);
+TensorPtr min(TensorPtr a, TensorPtr b);
+TensorPtr max(TensorPtr a, TensorPtr b);
 
 // linalg
 TensorPtr matmul(TensorPtr a, TensorPtr b, bool transpose_a=false, bool transpose_b=false);
+
+// reduce
+TensorVec reduce_min(TensorPtr a, ssize_t axis, bool keepdims=false);
+TensorVec reduce_max(TensorPtr a, ssize_t axis, bool keepdims=false);
+TensorPtr reduce_sum(TensorPtr a, ssize_t axis, bool keepdims=false);
+TensorPtr reduce_mean(TensorPtr a, ssize_t axis, bool keepdims=false);
+TensorPtr reduce_prod(TensorPtr a, ssize_t axis, bool keepdims=false);
 
 // shape
 TensorPtr reshape(TensorPtr a, const ShapeVec &shape);

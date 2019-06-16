@@ -150,6 +150,10 @@ GTensorPtr matmul(GTensorPtr a, GTensorPtr b, bool transpose_a=false, bool trans
 
 GTensorPtr assign(GTensorPtr a, GTensorPtr b);
 
+GTensorPtr shapeof(GTensorPtr a);
+GTensorPtr shapeof(GTensorPtr a, ssize_t axis);
+GTensorPtr shape_cat(GTensorVec a);
+
 } /* !namespace graph */
 
 } /* !namespace ncg */
