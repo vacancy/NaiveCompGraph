@@ -243,6 +243,34 @@ TensorPtr gather(TensorPtr a, ssize_t axis, TensorPtr b) {
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
+TensorPtr narrow_backward(TensorPtr a, ssize_t axis, ssize_t start, ssize_t input_size){
+    auto ctx = OpContext();
+    auto op = OpNarrowBackward();
+    op.set_desc(OpDescPtr(new OpNarrowBackwardDesc(axis, start, input_size)));
+    auto output_vec = op.execute(ctx, {a});
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    return ctx.ok() ? output_vec[0] : nullptr;
+}
+
+TensorPtr index_select_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size) {
+    auto ctx = OpContext();
+    auto op = OpIndexSelectBackward();
+    op.set_desc(OpDescPtr(new OpIndexSelectBackwardDesc(axis, input_size)));
+    auto output_vec = op.execute(ctx, {a, b});
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    return ctx.ok() ? output_vec[0] : nullptr;
+}
+
+TensorPtr gather_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size) {
+    auto ctx = OpContext();
+    auto op = OpGatherBackward();
+    op.set_desc(OpDescPtr(new OpGatherBackwardDesc(axis, input_size)));
+    auto output_vec = op.execute(ctx, {a, b});
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    return ctx.ok() ? output_vec[0] : nullptr;
+}
+
+
 #define NCG_OP_DEF_OPERATOR_FUNC(op_symbol, op_func) TensorPtr operator op_symbol (const TensorPtr &a, const TensorPtr &b) { \
     return op_func(a, b); \
 }

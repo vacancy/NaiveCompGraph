@@ -209,6 +209,10 @@ TensorPtr narrow(TensorPtr a, ssize_t axis, ssize_t start, ssize_t length);
 TensorPtr index_select(TensorPtr a, ssize_t axis, TensorPtr b);
 TensorPtr gather(TensorPtr a, ssize_t axis, TensorPtr b);
 
+TensorPtr narrow_backward(TensorPtr a, ssize_t axis, ssize_t start, ssize_t input_size);
+TensorPtr index_select_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size);
+TensorPtr gather_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size);
+
 TensorPtr operator + (const TensorPtr &a, const TensorPtr &b);
 TensorPtr operator - (const TensorPtr &a, const TensorPtr &b);
 TensorPtr operator * (const TensorPtr &a, const TensorPtr &b);
