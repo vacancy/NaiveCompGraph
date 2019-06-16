@@ -5,8 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_OPS_SLICES_H
-#define CORE_OPS_SLICES_H
+#pragma once
 
 #include "core/op.h"
 
@@ -190,26 +189,13 @@ public:
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-
-        auto input = inputs[0];
-        input->make_contiguous();
-
-        auto output_desc = input->desc();
-        output_desc.shape(desc.axis) = desc.input_size;
-        ssize_t output_data_ptr_offset = input->data_ptr_offset() - output_desc.stride(desc.axis) * desc.start;
-        TensorPtr output = tensor(output_desc, input->storage(), false, output_data_ptr_offset);
-
-        return {output};
-    }
-
-    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         const auto &desc = this->template desc<OpNarrowBackwardDesc>();
 
         auto shape = inputs[0]->desc().shape_vec();
         shape[desc.axis] = desc.input_size;
         auto output = zeros(inputs[0]->desc().dtype(), shape);
 
-#define NARROWBACKWARD_DTYPE_CASE(dtype) kernel_<DTypeName::dtype>(inputs[0]->template as<DTypeName::dtype>(), output->template as<DTypeName::dtype>(), desc.axis, desc.start);
+#define NARROWBACKWARD_DTYPE_CASE(dtype_name) kernel_<DTypeName::dtype_name>(inputs[0]->template as<DTypeName::dtype_name>(), output->template as<DTypeName::dtype_name>(), desc.axis, desc.start);
 NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), NARROWBACKWARD_DTYPE_CASE);
 #undef NARROWBACKWARD_DTYPE_CASE
 
@@ -217,7 +203,7 @@ NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), NARROWBACKWARD_DTYPE_CASE);
     }
 
 private:
-    template <DTypeName DT, DTypeName IndexDT>
+    template <DTypeName DT>
     void kernel_(const TensorImpl<DT> *input, TensorImpl<DT> *output, ssize_t axis, ssize_t start) {
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
@@ -267,7 +253,7 @@ public:
     }
 
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto axis = this->template desc<OpIndexSelectBackwardDesc>().axis;
+        auto axis = this->template desc<OpIndexSelectDesc>().axis;
 
         auto shape = inputs[0]->desc().shape_vec();
         shape[axis] = inputs[1]->desc().shape(0);
@@ -536,4 +522,3 @@ private:
 
 } /* !namespace ncg */
 
-#endif /* !CORE_OPS_SLICES_H */

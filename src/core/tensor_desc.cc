@@ -31,18 +31,11 @@ TensorDesc::TensorDesc(DTypeName dtype, const ShapeVec &shape, const ShapeVec &s
 
     ncg_assert(shape.size() <= TensorMaxDim);
     ncg_assert(stride.size() <= TensorMaxDim);
-    size_t i;
 
-    i = 0;
-    for (auto it = shape.begin(); it != shape.end(); ++it) m_shape[i++] = *it;
-    m_shape[i++] = TensorShape0;
-    size_t d = i - 1;
-
+    set_shape_vec(shape);
     if (stride.size() > 0) {
         ncg_assert(shape.size() == stride.size());
-        i = 0;
-        for (auto it = stride.begin(); it != stride.end(); ++it) m_stride[i++] = *it;
-        m_stride[i++] = TensorShape0;
+        set_stride_vec(stride);
     } else {
         set_default_stride();
     }
@@ -63,6 +56,13 @@ ShapeVec TensorDesc::shape_vec() const {
     return ShapeVec(m_shape, m_shape + dim());
 }
 
+void TensorDesc::set_shape_vec(const ShapeVec &shape) {
+    ncg_assert(shape.size() <= TensorMaxDim);
+    size_t i = 0;
+    for (auto it = shape.begin(); it != shape.end(); ++it) m_shape[i++] = *it;
+    m_shape[i++] = TensorShape0;
+}
+
 ssize_t *TensorDesc::shape() {
     return m_shape;
 }
@@ -73,6 +73,13 @@ const ssize_t *TensorDesc::shape() const {
 
 ShapeVec TensorDesc::stride_vec() const {
     return ShapeVec(m_stride, m_stride + dim());
+}
+
+void TensorDesc::set_stride_vec(const ShapeVec &stride) {
+    ncg_assert(stride.size() <= TensorMaxDim);
+    size_t i = 0;
+    for (auto it = stride.begin(); it != stride.end(); ++it) m_stride[i++] = *it;
+    m_stride[i++] = TensorShape0;
 }
 
 ssize_t *TensorDesc::stride() {

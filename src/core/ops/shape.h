@@ -33,7 +33,7 @@ public:
 
 #define RESHAPE_INVALID_SHAPE do {\
     ctx.error(this) << "Invalid target shape " << shape << "; input tensor shape is " << inputs[0]->desc().shape_vec(); \
-    return ; \
+    return; \
 } while (0)
 
         auto &shape = this->template desc<OpReshapeDesc>().shape;
@@ -183,6 +183,89 @@ public:
             }
         }
 
+        return {output};
+    }
+};
+
+class OpSqueezeDesc : public OpDesc {
+public:
+    OpSqueezeDesc() : axis(0) {};
+    OpSqueezeDesc(ssize_t axis) : axis(axis) {}
+    virtual ~OpSqueezeDesc() = default;
+
+    ssize_t axis;
+};
+
+class OpSqueeze : public Op {
+public:
+    NCG_OP_DEF_NAME(OpSqueeze);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+
+        const auto input = inputs[0];
+        auto axis = this->template desc<OpSqueezeDesc>().axis;
+        if (axis < 0) axis += input->desc().dim();
+
+        NCG_OP_CHECK_INPUT_DIM_GEQ(ctx, inputs, 0, axis);
+        if (input->desc().shape(axis) != 1) {
+            ctx.error(this) << "Only size 1 dimensions can be squeezed.";
+        }
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto input = inputs[0];
+        auto axis = this->template desc<OpSqueezeDesc>().axis;
+        if (axis < 0) axis += input->desc().dim();
+        auto output = tensor(input->desc(), input->storage(), false);
+
+        auto shape_vec = input->desc().shape_vec();
+        shape_vec.erase(shape_vec.begin() + axis);
+        auto stride_vec = input->desc().stride_vec();
+        stride_vec.erase(stride_vec.begin() + axis);
+
+        output->desc().set_shape_vec(shape_vec);
+        output->desc().set_stride_vec(stride_vec);
+        return {output};
+    }
+};
+
+class OpUnsqueezeDesc : public OpDesc {
+public:
+    OpUnsqueezeDesc() : axis(0) {};
+    OpUnsqueezeDesc(ssize_t axis) : axis(axis) {}
+    virtual ~OpUnsqueezeDesc() = default;
+
+    ssize_t axis;
+};
+
+class OpUnsqueeze : public Op {
+public:
+    NCG_OP_DEF_NAME(OpUnsqueeze);
+
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+
+        const auto input = inputs[0];
+        auto axis = this->template desc<OpUnsqueezeDesc>().axis;
+        if (axis < 0) axis += input->desc().dim();
+
+        NCG_OP_CHECK_INPUT_DIM_GEQ(ctx, inputs, 0, axis - 1);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        const auto input = inputs[0];
+        auto axis = this->template desc<OpUnsqueezeDesc>().axis;
+        if (axis < 0) axis += input->desc().dim();
+        auto output = tensor(input->desc(), input->storage(), false);
+
+        auto shape_vec = input->desc().shape_vec();
+        shape_vec.insert(shape_vec.begin() + axis, 1);
+        auto stride_vec = input->desc().stride_vec();
+        stride_vec.insert(stride_vec.begin() + axis, 0);
+
+        output->desc().set_shape_vec(shape_vec);
+        output->desc().set_stride_vec(stride_vec);
         return {output};
     }
 };

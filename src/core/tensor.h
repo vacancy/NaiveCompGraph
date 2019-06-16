@@ -95,6 +95,8 @@ public:
     TensorPtr reshape(const ShapeVec &shape) const;
     TensorPtr permute(const ShapeVec &axes) const;
     TensorPtr expand(const ShapeVec &shape) const;
+    TensorPtr squeeze(ssize_t axis) const;
+    TensorPtr unsqueeze(ssize_t axis) const;
 
     TensorPtr narrow(ssize_t axis, ssize_t start, ssize_t length);
     TensorPtr index_select(ssize_t axis, const TensorPtr &indices);
@@ -201,6 +203,8 @@ TensorPtr reduce_prod(TensorPtr a, ssize_t axis, bool keepdims=false);
 TensorPtr reshape(TensorPtr a, const ShapeVec &shape);
 TensorPtr permute(TensorPtr a, const ShapeVec &axes);
 TensorPtr expand(TensorPtr a, const ShapeVec &shape);
+TensorPtr squeeze(TensorPtr a, ssize_t axis);
+TensorPtr unsqueeze(TensorPtr a, ssize_t axis);
 
 // slice
 TensorPtr concat(const TensorVec &a, ssize_t axis);

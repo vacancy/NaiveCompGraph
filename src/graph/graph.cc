@@ -34,7 +34,7 @@ void GraphTopoSorter::mark_(const GTensorPtr &t) {
     std::uintptr_t opi = reinterpret_cast<std::uintptr_t>(op);
 
     if (m_visited.find(opi) != m_visited.end()) {
-        return ;
+        return;
     }
     for (const auto &input : op->inputs()) {
         mark_(input);

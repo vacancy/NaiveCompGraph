@@ -185,7 +185,7 @@ NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_sum, ReduceSum);
 NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_mean, ReduceMean);
 NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_prod, ReduceProd);
 
-#define NCG_OP_DEF_SHAPE_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, const ShapeVec &b) { \
+#define NCG_OP_DEF_SHAPE_TYPE1_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, const ShapeVec &b) { \
     auto ctx = OpContext(); \
     auto op = Op##op_name(); \
     op.set_desc(OpDescPtr(new Op##op_name##Desc(b))); \
@@ -194,9 +194,21 @@ NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_prod, ReduceProd);
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
-NCG_OP_DEF_SHAPE_FUNC(reshape, Reshape);
-NCG_OP_DEF_SHAPE_FUNC(permute, Permute);
-NCG_OP_DEF_SHAPE_FUNC(expand, Expand);
+NCG_OP_DEF_SHAPE_TYPE1_FUNC(reshape, Reshape);
+NCG_OP_DEF_SHAPE_TYPE1_FUNC(permute, Permute);
+NCG_OP_DEF_SHAPE_TYPE1_FUNC(expand, Expand);
+
+#define NCG_OP_DEF_SHAPE_TYPE2_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, ssize_t axis) { \
+    auto ctx = OpContext(); \
+    auto op = Op##op_name(); \
+    op.set_desc(OpDescPtr(new Op##op_name##Desc(axis))); \
+    auto output_vec = op.execute(ctx, {a}); \
+    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    return ctx.ok() ? output_vec[0] : nullptr; \
+}
+
+NCG_OP_DEF_SHAPE_TYPE2_FUNC(squeeze, Squeeze);
+NCG_OP_DEF_SHAPE_TYPE2_FUNC(unsqueeze, Unsqueeze);
 
 TensorPtr concat(const TensorVec &a, ssize_t axis) {
     auto ctx = OpContext();
@@ -312,6 +324,14 @@ TensorPtr TensorPtr::permute(const ShapeVec &axes) const {
 
 TensorPtr TensorPtr::expand(const ShapeVec &shape) const {
     return ::ncg::expand(*this, shape);
+}
+
+TensorPtr TensorPtr::squeeze(ssize_t axis) const {
+    return ::ncg::squeeze(*this, axis);
+}
+
+TensorPtr TensorPtr::unsqueeze(ssize_t axis) const {
+    return ::ncg::unsqueeze(*this, axis);
 }
 
 TensorPtr TensorPtr::narrow(ssize_t axis, ssize_t start, ssize_t length) {

@@ -74,7 +74,7 @@ void TensorImpl<DT>::make_own_data() {
 template <DTypeName DT>
 void TensorImpl<DT>::make_contiguous() {
     if (m_desc.is_continugous()) {
-        return ;
+        return;
     } else {
         auto storage = new TensorStorageImpl<DT>(m_desc.numel());
         for (ssize_t i = 0; i < m_desc.numel(); ++i) {

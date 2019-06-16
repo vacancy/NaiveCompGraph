@@ -52,7 +52,7 @@ protected:
 
 #define NCG_OP_DEF_NAME(op_name_) virtual const char *op_name() const { return #op_name_; }
 
-#define NCG_OP_CHECK_CTX_CLEAN(ctx) if (ctx.is_error()) return ;
+#define NCG_OP_CHECK_CTX_CLEAN(ctx) if (ctx.is_error()) return;
 
 #define NCG_OP_CHECK_NR_INPUTS(ctx, inputs, n) do { \
     if (inputs.size() != n) { \

@@ -14,6 +14,7 @@ void GOpNeg::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -25,6 +26,7 @@ void GOpSin::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -38,6 +40,7 @@ void GOpCos::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -53,6 +56,7 @@ void GOpTan::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     auto cosx = graph.op<GOpCos>(nullptr, m_inputs[0]);
@@ -69,6 +73,7 @@ void GOpLog::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -82,6 +87,7 @@ void GOpExp::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -95,6 +101,7 @@ void GOpTanh::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -115,6 +122,7 @@ void GOpSigmoid::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -138,6 +146,7 @@ void GOpReciprocal::backward(Graph &graph, GTensorPtr loss) {
     auto output_grad = m_outputs[0]->grad(loss);
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -155,6 +164,7 @@ void GOpAdd::backward(Graph &graph, GTensorPtr loss) {
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -170,6 +180,7 @@ void GOpSub::backward(Graph &graph, GTensorPtr loss) {
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -185,6 +196,7 @@ void GOpMul::backward(Graph &graph, GTensorPtr loss) {
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -200,6 +212,7 @@ void GOpDiv::backward(Graph &graph, GTensorPtr loss) {
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,
@@ -227,6 +240,7 @@ void GOpPow::backward(Graph &graph, GTensorPtr loss) {
     if (output_grad == nullptr) {
         m_inputs[0]->set_grad(graph, loss, nullptr);
         m_inputs[1]->set_grad(graph, loss, nullptr);
+        return;
     }
 
     m_inputs[0]->set_grad(graph, loss,

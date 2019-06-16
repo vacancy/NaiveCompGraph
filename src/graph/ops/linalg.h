@@ -46,6 +46,7 @@ public:
         if (output_grad == nullptr) {
             m_inputs[0]->set_grad(graph, loss, nullptr);
             m_inputs[1]->set_grad(graph, loss, nullptr);
+            return;
         }
 
         m_inputs[0]->set_grad(graph, loss,

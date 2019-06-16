@@ -40,9 +40,11 @@ public:
     size_t dim() const;
 
     ShapeVec shape_vec() const;
+    void set_shape_vec(const ShapeVec &);
     ssize_t *shape();
     const ssize_t *shape() const;
     ShapeVec stride_vec() const;
+    void set_stride_vec(const ShapeVec &);
     ssize_t *stride();
     const ssize_t *stride() const;
 
