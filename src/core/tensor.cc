@@ -112,19 +112,27 @@ NCG_DTYPE_SWITCH_ALL(dtype, ARANGE_DTYPE_CASE);
 }
 
 TensorPtr cast(TensorPtr a, DTypeName dtype) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpCast();
     op.set_desc(OpDescPtr(new OpCastDesc(dtype)));
     auto output_vec = op.execute(ctx, {a});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
+    return ctx.ok() ? output_vec[0] : nullptr;
+}
+
+TensorPtr cond(TensorPtr a, TensorPtr b, TensorPtr c) {
+    OpContext ctx;
+    auto op = OpCond();
+    auto output_vec = op.execute(ctx, {a, b, c});
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 #define NCG_OP_DEF_UNARY_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     auto output_vec = op.execute(ctx, {a}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
@@ -139,10 +147,10 @@ NCG_OP_DEF_UNARY_FUNC(sigmoid, Sigmoid);
 NCG_OP_DEF_UNARY_FUNC(reciprocal, Reciprocal);
 
 #define NCG_OP_DEF_BINARY_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, TensorPtr b) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     auto output_vec = op.execute(ctx, {a, b}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
@@ -161,20 +169,20 @@ NCG_OP_DEF_BINARY_FUNC(min, Min);
 NCG_OP_DEF_BINARY_FUNC(max, Max);
 
 TensorPtr matmul(TensorPtr a, TensorPtr b, bool transpose_a, bool transpose_b) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpMatMul();
     op.set_desc(OpDescPtr(new OpMatMulDesc(transpose_a, transpose_b)));
     auto output_vec = op.execute(ctx, {a, b});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 #define NCG_OP_DEF_REDUCE_TYPE1_FUNC(func_name, op_name) TensorVec func_name(TensorPtr a, ssize_t axis, bool keepdims) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     op.set_desc(OpDescPtr(new OpReduceDesc(axis, keepdims))); \
     auto output_vec = op.execute(ctx, {a}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return output_vec; \
 }
 
@@ -182,24 +190,23 @@ NCG_OP_DEF_REDUCE_TYPE1_FUNC(reduce_min, ReduceMin);
 NCG_OP_DEF_REDUCE_TYPE1_FUNC(reduce_max, ReduceMax);
 
 #define NCG_OP_DEF_REDUCE_TYPE2_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, ssize_t axis, bool keepdims) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     op.set_desc(OpDescPtr(new OpReduceDesc(axis, keepdims))); \
     auto output_vec = op.execute(ctx, {a}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
 NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_sum, ReduceSum);
 NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_mean, ReduceMean);
-NCG_OP_DEF_REDUCE_TYPE2_FUNC(reduce_prod, ReduceProd);
 
 #define NCG_OP_DEF_SHAPE_TYPE1_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, const ShapeVec &b) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     op.set_desc(OpDescPtr(new Op##op_name##Desc(b))); \
     auto output_vec = op.execute(ctx, {a}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
@@ -208,11 +215,11 @@ NCG_OP_DEF_SHAPE_TYPE1_FUNC(permute, Permute);
 NCG_OP_DEF_SHAPE_TYPE1_FUNC(expand, Expand);
 
 #define NCG_OP_DEF_SHAPE_TYPE2_FUNC(func_name, op_name) TensorPtr func_name(TensorPtr a, ssize_t axis) { \
-    auto ctx = OpContext(); \
+    OpContext ctx; \
     auto op = Op##op_name(); \
     op.set_desc(OpDescPtr(new Op##op_name##Desc(axis))); \
     auto output_vec = op.execute(ctx, {a}); \
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str()); \
+    ncg_assert_msg(ctx.ok(), ctx.error_str()); \
     return ctx.ok() ? output_vec[0] : nullptr; \
 }
 
@@ -220,74 +227,74 @@ NCG_OP_DEF_SHAPE_TYPE2_FUNC(squeeze, Squeeze);
 NCG_OP_DEF_SHAPE_TYPE2_FUNC(unsqueeze, Unsqueeze);
 
 TensorPtr concat(const TensorVec &a, ssize_t axis) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpConcat();
     op.set_desc(OpDescPtr(new OpConcatDesc(axis)));
     auto output_vec = op.execute(ctx, a);
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorVec split(TensorPtr a, ssize_t axis, const ShapeVec &splits) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpSplit();
     op.set_desc(OpDescPtr(new OpSplitDesc(axis, splits)));
     auto output_vec = op.execute(ctx, {a});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return output_vec;
 }
 
 TensorPtr narrow(TensorPtr a, ssize_t axis, ssize_t start, ssize_t length) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpNarrow();
     op.set_desc(OpDescPtr(new OpNarrowDesc(axis, start, length)));
     auto output_vec = op.execute(ctx, {a});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorPtr index_select(TensorPtr a, ssize_t axis, TensorPtr b) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpIndexSelect();
     op.set_desc(OpDescPtr(new OpIndexSelectDesc(axis)));
     auto output_vec = op.execute(ctx, {a, b});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorPtr gather(TensorPtr a, ssize_t axis, TensorPtr b) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpGather();
     op.set_desc(OpDescPtr(new OpGatherDesc(axis)));
     auto output_vec = op.execute(ctx, {a, b});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorPtr narrow_backward(TensorPtr a, ssize_t axis, ssize_t start, ssize_t input_size){
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpNarrowBackward();
     op.set_desc(OpDescPtr(new OpNarrowBackwardDesc(axis, start, input_size)));
     auto output_vec = op.execute(ctx, {a});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorPtr index_select_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpIndexSelectBackward();
     op.set_desc(OpDescPtr(new OpIndexSelectBackwardDesc(axis, input_size)));
     auto output_vec = op.execute(ctx, {a, b});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
 TensorPtr gather_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_size) {
-    auto ctx = OpContext();
+    OpContext ctx;
     auto op = OpGatherBackward();
     op.set_desc(OpDescPtr(new OpGatherBackwardDesc(axis, input_size)));
     auto output_vec = op.execute(ctx, {a, b});
-    ncg_assert_msg(!ctx.is_error(), ctx.error_str());
+    ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
 
@@ -338,7 +345,6 @@ NCG_OP_DEF_REDUCE_OPERATOR_FUNC(min, Vec);
 NCG_OP_DEF_REDUCE_OPERATOR_FUNC(max, Vec);
 NCG_OP_DEF_REDUCE_OPERATOR_FUNC(sum, Ptr);
 NCG_OP_DEF_REDUCE_OPERATOR_FUNC(mean, Ptr);
-NCG_OP_DEF_REDUCE_OPERATOR_FUNC(prod, Ptr);
 
 TensorPtr TensorPtr::reshape(const ShapeVec &shape) const {
     return ::ncg::reshape(*this, shape);
@@ -360,15 +366,15 @@ TensorPtr TensorPtr::unsqueeze(ssize_t axis) const {
     return ::ncg::unsqueeze(*this, axis);
 }
 
-TensorPtr TensorPtr::narrow(ssize_t axis, ssize_t start, ssize_t length) {
+TensorPtr TensorPtr::narrow(ssize_t axis, ssize_t start, ssize_t length) const {
     return ::ncg::narrow(*this, axis, start, length);
 }
 
-TensorPtr TensorPtr::index_select(ssize_t axis, const TensorPtr &indices) {
+TensorPtr TensorPtr::index_select(ssize_t axis, const TensorPtr &indices) const {
     return ::ncg::index_select(*this, axis, indices);
 }
 
-TensorPtr TensorPtr::gather(ssize_t axis, const TensorPtr &indices) {
+TensorPtr TensorPtr::gather(ssize_t axis, const TensorPtr &indices) const {
     return ::ncg::gather(*this, axis, indices);
 }
 

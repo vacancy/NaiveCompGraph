@@ -223,7 +223,7 @@ NCG_DTYPE_SWITCH_ALL(dtype, FROMCC_DTYPE_CASE);
     return s;
 }
 
-template <typename ValueT=double>
+template <typename ValueT>
 ValueT tocc_scalar(TensorPtr tensor) {
     ncg_assert(tensor->desc().dim() == 0);
 
@@ -235,7 +235,7 @@ NCG_DTYPE_SWITCH_ALL(tensor->desc().dtype(), TOCC_DTYPE_CASE);
 #undef TOCC_DTYPE_CASE
 }
 
-template <typename ValueT=double>
+template <typename ValueT>
 std::vector<ValueT> tocc_vector(TensorPtr tensor) {
     ncg_assert(tensor->desc().dim() == 1);
     std::vector<ValueT> output(tensor->desc().shape(0));

@@ -26,6 +26,7 @@ const ssize_t NewAxis = std::numeric_limits<ssize_t>::max();
 class ShapeVec : public std::vector<ssize_t> {
 public:
     using std::vector<ssize_t>::vector;
+    virtual ~ShapeVec() = default;
     friend std::ostream &operator << (std::ostream &out, const ShapeVec &shape);
 };
 

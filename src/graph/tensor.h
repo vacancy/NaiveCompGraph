@@ -31,6 +31,7 @@ public:
     using std::shared_ptr<GraphTensor>::shared_ptr;
     using super = std::shared_ptr<GraphTensor>;
 
+    GTensorPtr() : super(nullptr) {}
     GTensorPtr(const GTensorPtr &other) : super(other) {}
     GTensorPtr(const std::shared_ptr<GraphTensor> &other) : super(other) {}
     GTensorPtr(std::shared_ptr<GraphTensor> &&other) : super(std::forward<super>(other)) {}
@@ -45,8 +46,39 @@ public:
 
     GTensorPtr eq(const GTensorPtr &rhs) const;
     GTensorPtr neq(const GTensorPtr &rhs) const;
+
+    GTensorPtr cast(DTypeName dtype) const;
+    GTensorPtr int8() const;
+    GTensorPtr uint8() const;
+    GTensorPtr int32() const;
+    GTensorPtr uint32() const;
+    GTensorPtr int64() const;
+    GTensorPtr uint64() const;
+    GTensorPtr float32() const;
+    GTensorPtr float64() const;
+
+    std::vector<GTensorPtr> min(ssize_t axis, bool keepdims=false) const;
+    std::vector<GTensorPtr> max(ssize_t axis, bool keepdims=false) const;
+    GTensorPtr sum(ssize_t axis, bool keepdims=false) const;
+    GTensorPtr mean(ssize_t axis, bool keepdims=false) const;
+
+    GTensorPtr reshape(const ShapeVec &shape) const;
+    GTensorPtr permute(const ShapeVec &axes) const;
+    GTensorPtr expand(const ShapeVec &shape) const;
+    GTensorPtr squeeze(ssize_t axis) const;
+    GTensorPtr unsqueeze(ssize_t axis) const;
+
+    GTensorPtr narrow(ssize_t axis, ssize_t start, ssize_t length) const;
+    GTensorPtr index_select(ssize_t axis, const GTensorPtr &indices) const;
+    GTensorPtr gather(ssize_t axis, const GTensorPtr &indices) const;
+
+    GTensorPtr shape() const;
+    GTensorPtr shape(ssize_t axis) const;
+
+    friend std::ostream &operator << (std::ostream &out, const GTensorPtr &tensor);
 };
 
+GTensorPtr operator - (const GTensorPtr &a);
 GTensorPtr operator + (const GTensorPtr &a, const GTensorPtr &b);
 GTensorPtr operator - (const GTensorPtr &a, const GTensorPtr &b);
 GTensorPtr operator * (const GTensorPtr &a, const GTensorPtr &b);
@@ -76,6 +108,7 @@ as_gtensor(std::vector<std::vector<T>> value) {
 }
 
 GTensorPtr as_gtensor(Graph &graph, const TensorPtr &value);
+
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value, GTensorPtr>::type
 as_gtensor(Graph &graph, T value) {
@@ -135,6 +168,14 @@ protected:
 
 namespace G {
 
+GTensorVec auto_broadcast(Graph &graph, const GTensorVec &a);
+GTensorVec auto_broadcast(const GTensorVec &a);
+
+// elemwise::misc
+GTensorPtr cast(TensorPtr a, DTypeName dtype);
+GTensorPtr cond(TensorPtr a, TensorPtr b, TensorPtr c);
+
+// elemwise::unary
 GTensorPtr neg(GTensorPtr a);
 GTensorPtr sin(GTensorPtr a);
 GTensorPtr cos(GTensorPtr a);
@@ -159,22 +200,43 @@ GTensorPtr pow(GTensorPtr a, GTensorPtr b);
 GTensorPtr min(GTensorPtr a, GTensorPtr b);
 GTensorPtr max(GTensorPtr a, GTensorPtr b);
 
-GTensorVec auto_broadcast(Graph &graph, const GTensorVec &a);
-GTensorVec auto_broadcast(const GTensorVec &a);
-
+// netsrc
 GTensorPtr placeholder(std::string name, const ShapeVec &shape, DTypeName dtype=DTypeName::Float32);
 GTensorPtr constant(TensorPtr value);
 GTensorPtr variable(std::string name, TensorPtr init_value);
 GTensorPtr zeros(const ShapeVec &shape, DTypeName dtype=DTypeName::Float32);
 GTensorPtr ones(const ShapeVec &shape, DTypeName dtype=DTypeName::Float32);
 
+// linalg
 GTensorPtr matmul(GTensorPtr a, GTensorPtr b, bool transpose_a=false, bool transpose_b=false);
 
+// update
 GTensorPtr assign(GTensorPtr a, GTensorPtr b);
 
-GTensorPtr shapeof(GTensorPtr a);
-GTensorPtr shapeof(GTensorPtr a, ssize_t axis);
+// reduce
+GTensorVec reduce_min(GTensorPtr a, ssize_t axis, bool keepdims=false);
+GTensorVec reduce_max(GTensorPtr a, ssize_t axis, bool keepdims=false);
+GTensorPtr reduce_sum(GTensorPtr a, ssize_t axis, bool keepdims=false);
+GTensorPtr reduce_mean(GTensorPtr a, ssize_t axis, bool keepdims=false);
+
+// shape
+GTensorPtr reshape(GTensorPtr a, const ShapeVec &shape);
+GTensorPtr permute(GTensorPtr a, const ShapeVec &axes);
+GTensorPtr expand(GTensorPtr a, const ShapeVec &shape);
+GTensorPtr squeeze(GTensorPtr a, ssize_t axis);
+GTensorPtr unsqueeze(GTensorPtr a, ssize_t axis);
+
+// shape
+GTensorPtr shape_of(GTensorPtr a);
+GTensorPtr shape_of(GTensorPtr a, ssize_t axis);
 GTensorPtr shape_cat(const GTensorVec &a);
+
+// slice
+GTensorPtr concat(const GTensorVec &a, ssize_t axis);
+GTensorVec split(GTensorPtr a, ssize_t axis, const ShapeVec &splits);
+GTensorPtr narrow(GTensorPtr a, ssize_t axis, ssize_t start, ssize_t length);
+GTensorPtr index_select(GTensorPtr a, ssize_t axis, GTensorPtr b);
+GTensorPtr gather(GTensorPtr a, ssize_t axis, GTensorPtr b);
 
 } /* !namespace graph */
 

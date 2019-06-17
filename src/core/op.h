@@ -178,7 +178,7 @@ protected:
 #define NCG_OP_CHECK_INPUT_DIM_GEQ(ctx, inputs, idx, dim_expr) do { \
     auto idx_value = (idx); \
     auto dim_value = (dim_expr); \
-    if (inputs[idx_value]->desc().dim() < dim_value) { \
+    if (dim_value > 0 && inputs[idx_value]->desc().dim() < dim_value) { \
         ctx.error(this) << this->op_name() << " requires the input " << (idx_value + 1) << " to have a dimension of at least " << dim_value << ", but got " << inputs[idx_value]->desc().dim() << "."; \
         return; \
     } \

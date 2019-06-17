@@ -71,6 +71,7 @@ public:
     using std::shared_ptr<Tensor>::shared_ptr;
     using super = std::shared_ptr<Tensor>;
 
+    TensorPtr() : super(nullptr) {}
     TensorPtr(const TensorPtr &other) : super(other) {}
 
     TensorPtr(const std::shared_ptr<Tensor> &other) : super(other) {}
@@ -100,7 +101,6 @@ public:
     std::vector<TensorPtr> max(ssize_t axis, bool keepdims=false) const;
     TensorPtr sum(ssize_t axis, bool keepdims=false) const;
     TensorPtr mean(ssize_t axis, bool keepdims=false) const;
-    TensorPtr prod(ssize_t axis, bool keepdims=false) const;
 
     TensorPtr reshape(const ShapeVec &shape) const;
     TensorPtr permute(const ShapeVec &axes) const;
@@ -108,9 +108,9 @@ public:
     TensorPtr squeeze(ssize_t axis) const;
     TensorPtr unsqueeze(ssize_t axis) const;
 
-    TensorPtr narrow(ssize_t axis, ssize_t start, ssize_t length);
-    TensorPtr index_select(ssize_t axis, const TensorPtr &indices);
-    TensorPtr gather(ssize_t axis, const TensorPtr &indices);
+    TensorPtr narrow(ssize_t axis, ssize_t start, ssize_t length) const;
+    TensorPtr index_select(ssize_t axis, const TensorPtr &indices) const;
+    TensorPtr gather(ssize_t axis, const TensorPtr &indices) const;
 
     friend std::ostream &operator << (std::ostream &out, const TensorPtr &tensor);
 };
@@ -179,7 +179,9 @@ std::vector<ValueT> tocc_vector(TensorPtr tensor);
 
 TensorPtr arange(DTypeName dtype, int64_t begin, int64_t end = std::numeric_limits<int64_t>::min(), int64_t step=1);
 
+// elemwise::misc
 TensorPtr cast(TensorPtr a, DTypeName dtype);
+TensorPtr cond(TensorPtr a, TensorPtr b, TensorPtr c);
 
 // elemwise::unary
 TensorPtr neg(TensorPtr a);
@@ -215,7 +217,6 @@ TensorVec reduce_min(TensorPtr a, ssize_t axis, bool keepdims=false);
 TensorVec reduce_max(TensorPtr a, ssize_t axis, bool keepdims=false);
 TensorPtr reduce_sum(TensorPtr a, ssize_t axis, bool keepdims=false);
 TensorPtr reduce_mean(TensorPtr a, ssize_t axis, bool keepdims=false);
-TensorPtr reduce_prod(TensorPtr a, ssize_t axis, bool keepdims=false);
 
 // shape
 TensorPtr reshape(TensorPtr a, const ShapeVec &shape);

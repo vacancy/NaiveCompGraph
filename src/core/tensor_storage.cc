@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "core/datatype.h"
 #include "core/tensor_storage.h"
 
 namespace ncg {
@@ -88,7 +89,7 @@ typename TensorStorageImpl<DT>::cctype *TensorStorageImpl<DT>::mutable_data_ptr(
 
 template <DTypeName DT>
 std::ostream &operator << (std::ostream &out, const TensorStorageImpl<DT> &storage) {
-    out << "TensorStorage(dtype=" << DType<DT>::name << ", " << "size=" << storage.m_size << ", data_ptr=" << storage.m_data_ptr << ", values=[";
+    out << "TensorStorage(dtype=" << get_dtype_name(DT) << ", " << "size=" << storage.m_size << ", data_ptr=" << storage.m_data_ptr << ", values=[";
     for (ssize_t i = 0; i < std::min(TensorValueMaxPrint, storage.m_size); ++i) {
         out << (i == 0 ? "" : ", ") << storage.m_data_ptr[i];
     }

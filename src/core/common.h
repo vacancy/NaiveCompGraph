@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
+#include <memory>
 #include <typeinfo>
 #include <type_traits>
 

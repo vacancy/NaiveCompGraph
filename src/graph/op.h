@@ -82,6 +82,9 @@ public:
         auto op = std::make_unique<OpClass>();
         op->set_desc(m_desc);
         TensorVec outputs = op->execute(ctx, inputs);
+        if (ctx.is_error()) {
+            return;
+        }
         ncg_assert(m_outputs.size() == outputs.size());
         for (ssize_t i = 0; i < m_outputs.size(); ++i) {
             ctx.set_tensor(m_outputs[i], outputs[i]);

@@ -24,6 +24,7 @@ public:
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         auto axis = this->template desc<OpConcatDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
 
         auto shape = inputs[0]->desc().shape_vec();
         for (ssize_t i = 1; i < inputs.size(); ++i) {
@@ -52,6 +53,7 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto &input = inputs[0];
         auto axis = this->template desc<OpSplitDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
         const auto &splits = this->template desc<OpSplitDesc>().splits;
 
         auto outputs = GTensorVec(splits.size());
@@ -67,8 +69,10 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        const auto &desc = this->template desc<OpSplitDesc>();
         auto input = ctx.tensor(m_inputs[0]);
+        const auto &desc = this->template desc<OpSplitDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
 
         if (m_inputs.size() == 1) {
             auto op = std::make_unique<OpSplit>();
@@ -77,7 +81,7 @@ public:
             ctx.set_tensor(m_outputs[0], output[0]);
         } else {
             auto shape_vector = tocc_vector<ssize_t>(ctx.tensor(m_inputs[1]));
-            auto tmp_desc = OpDescPtr(new OpSplitDesc(desc.axis, ShapeVec(shape_vector.begin(), shape_vector.end())));
+            auto tmp_desc = OpDescPtr(new OpSplitDesc(axis, ShapeVec(shape_vector.begin(), shape_vector.end())));
             auto op = std::make_unique<OpSplit>();
             op->set_desc(tmp_desc);
             auto output = op->execute(ctx, {input});
@@ -106,14 +110,18 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto &input = inputs[0];
         const auto &desc = this->template desc<OpNarrowDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
         auto shape = input->desc().shape_vec();
-        shape[desc.axis] = desc.length;
+        shape[axis] = desc.length;
         return {make_tensor(0, TensorDesc(input->desc().dtype(), shape))};
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        const auto &desc = this->template desc<OpNarrowDesc>();
         auto input = ctx.tensor(m_inputs[0]);
+        const auto &desc = this->template desc<OpNarrowDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
 
         if (m_inputs.size() == 1) {
             auto op = std::make_unique<OpNarrow>();
@@ -123,7 +131,7 @@ public:
         } else {
             auto start = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[1]));
             auto length = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[2]));
-            auto tmp_desc = OpDescPtr(new OpNarrowDesc(desc.axis, start, length));
+            auto tmp_desc = OpDescPtr(new OpNarrowDesc(axis, start, length));
             auto op = std::make_unique<OpNarrow>();
             op->set_desc(tmp_desc);
             auto output = op->execute(ctx, {input});
@@ -152,14 +160,18 @@ public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto &input = inputs[0];
         const auto &desc = this->template desc<OpNarrowBackwardDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
         auto shape = input->desc().shape_vec();
-        shape[desc.axis] = desc.input_size;
+        shape[axis] = desc.input_size;
         return {make_tensor(0, TensorDesc(input->desc().dtype(), shape))};
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        const auto &desc = this->template desc<OpNarrowBackwardDesc>();
         auto input = ctx.tensor(m_inputs[0]);
+        const auto &desc = this->template desc<OpNarrowBackwardDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
 
         if (m_inputs.size() == 1) {
             auto op = std::make_unique<OpNarrowBackward>();
@@ -169,7 +181,7 @@ public:
         } else {
             auto start = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[1]));
             auto input_size = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[2]));
-            auto tmp_desc = OpDescPtr(new OpNarrowBackwardDesc(desc.axis, start, input_size));
+            auto tmp_desc = OpDescPtr(new OpNarrowBackwardDesc(axis, start, input_size));
             auto op = std::make_unique<OpNarrowBackward>();
             op->set_desc(tmp_desc);
             auto output = op->execute(ctx, {input});
@@ -192,6 +204,7 @@ public:
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         auto axis = this->template desc<OpIndexSelectDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
 
         auto shape = inputs[0]->desc().shape_vec();
         shape[axis] = inputs[1]->desc().shape(0);
@@ -218,6 +231,7 @@ public:
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         auto axis = this->template desc<OpIndexSelectBackwardDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
         auto input_size = this->template desc<OpIndexSelectBackwardDesc>().input_size;
 
         auto shape = inputs[0]->desc().shape_vec();
@@ -226,8 +240,10 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        const auto &desc = this->template desc<OpIndexSelectBackwardDesc>();
         auto input = ctx.tensor(m_inputs[0]);
+        const auto &desc = this->template desc<OpIndexSelectBackwardDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
         auto indices = ctx.tensor(m_inputs[1]);
 
         if (m_inputs.size() == 1) {
@@ -237,7 +253,7 @@ public:
             ctx.set_tensor(m_outputs[0], output[0]);
         } else {
             auto input_size = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[2]));
-            auto tmp_desc = OpDescPtr(new OpIndexSelectBackwardDesc(desc.axis, input_size));
+            auto tmp_desc = OpDescPtr(new OpIndexSelectBackwardDesc(axis, input_size));
             auto op = std::make_unique<OpIndexSelectBackward>();
             op->set_desc(tmp_desc);
             auto output = op->execute(ctx, {input, indices});
@@ -254,12 +270,13 @@ public:
 
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(graph, inputs, 2);
+        NCG_OP_CHECK_COMPATIBLE_DIM(graph, inputs);
         NCG_OP_CHECK_INPUT_DTYPE_INT(graph, inputs, 1);
-        NCG_OP_CHECK_INPUT_DIM(graph, inputs, 1, 1);
     }
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         auto axis = this->template desc<OpGatherDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
 
         auto shape = inputs[0]->desc().shape_vec();
         shape[axis] = inputs[1]->desc().shape(axis);
@@ -286,6 +303,7 @@ public:
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         auto axis = this->template desc<OpGatherBackwardDesc>().axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
         auto input_size = this->template desc<OpGatherBackwardDesc>().input_size;
 
         auto shape = inputs[0]->desc().shape_vec();
@@ -294,8 +312,10 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        const auto &desc = this->template desc<OpGatherBackwardDesc>();
         auto input = ctx.tensor(m_inputs[0]);
+        const auto &desc = this->template desc<OpGatherBackwardDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
         auto indices = ctx.tensor(m_inputs[1]);
 
         if (m_inputs.size() == 1) {
@@ -305,7 +325,7 @@ public:
             ctx.set_tensor(m_outputs[0], output[0]);
         } else {
             auto input_size = tocc_scalar<ssize_t>(ctx.tensor(m_inputs[2]));
-            auto tmp_desc = OpDescPtr(new OpGatherBackwardDesc(desc.axis, input_size));
+            auto tmp_desc = OpDescPtr(new OpGatherBackwardDesc(axis, input_size));
             auto op = std::make_unique<OpGatherBackward>();
             op->set_desc(tmp_desc);
             auto output = op->execute(ctx, {input, indices});

@@ -55,6 +55,7 @@ public:
     GOpPtr make_op(OpDescPtr desc, const TensorVec &inputs) {
         auto op = new OpClass();
         (*op)(*this, desc, inputs);
+        ncg_assert_msg(ok(), error_str());
         auto op_ptr = GOpPtr(op);
         m_ops.push_back(op_ptr);
         return op_ptr;
@@ -64,6 +65,7 @@ public:
     GOpPtr make_op(OpDescPtr desc, Tensors &&... args) {
         auto op = new OpClass();
         (*op)(*this, desc, {std::forward<Tensors>(args)...});
+        ncg_assert_msg(ok(), error_str());
         auto op_ptr = GOpPtr(op);
         m_ops.push_back(op_ptr);
         return op_ptr;
@@ -74,6 +76,7 @@ public:
         auto op = new OpClass();
         op->set_name(name);
         (*op)(*this, desc, inputs);
+        ncg_assert_msg(ok(), error_str());
         auto op_ptr = GOpPtr(op);
         m_ops.push_back(op_ptr);
         return op_ptr;
@@ -84,11 +87,13 @@ public:
         auto op = new OpClass();
         op->set_name(name);
         (*op)(*this, desc, {std::forward<Tensors>(args)...});
+        ncg_assert_msg(ok(), error_str());
         auto op_ptr = GOpPtr(op);
         m_ops.push_back(op_ptr);
         return op_ptr;
     }
 
+    const std::vector<GOpPtr> &ops() const;
     GOpPtr find_op(const std::string &name);
 
     template <typename OpClass, typename... Tensors>

@@ -9,6 +9,7 @@
 #include "core/datatype.h"
 #include "core/tensor.h"
 #include "core/tensor_impl.h"
+#include "core/tensor_extra_ops.h"
 #include "core/op.h"
 #include "core/ops/elemwise.h"
 #include "core/ops/linalg.h"

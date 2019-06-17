@@ -17,7 +17,7 @@
 namespace ncg {
 
 template <typename OpClass>
-class GOpReduceBase : public GraphOpWrapper<OpClass>, public GraphSingleOutputOp {
+class GOpReduceBase : public GraphOpWrapper<OpClass> {
 public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         const auto &desc = this->template desc<OpReduceDesc>();
@@ -31,30 +31,39 @@ class GOpReduceType1Base : public GOpReduceBase<OpClass> {
 public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto &desc = this->template desc<OpReduceDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+
         auto output_shape = inputs[0]->desc().shape_vec();
+
         if (desc.keepdims) {
-            output_shape[desc.axis] = 1;
+            output_shape[axis] = 1;
         } else {
-            output_shape.erase(output_shape.begin() + desc.axis);
+            output_shape.erase(output_shape.begin() + axis);
         }
 
-        return {
+        GTensorVec outputs = {
             this->make_tensor(0, TensorDesc(inputs[0]->desc().dtype(), output_shape)),
             this->make_tensor(1, TensorDesc(DTypeName::Int64, output_shape))
         };
+
+        return outputs;
     }
 };
 
 template <typename OpClass>
-class GOpReduceType2Base : public GOpReduceBase<OpClass> {
+class GOpReduceType2Base : public GOpReduceBase<OpClass>, public GraphSingleOutputOp {
 public:
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         const auto &desc = this->template desc<OpReduceDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+
         auto output_shape = inputs[0]->desc().shape_vec();
         if (desc.keepdims) {
-            output_shape[desc.axis] = 1;
+            output_shape[axis] = 1;
         } else {
-            output_shape.erase(output_shape.begin() + desc.axis);
+            output_shape.erase(output_shape.begin() + axis);
         }
 
         return {this->make_tensor(0, TensorDesc(inputs[0]->desc().dtype(), output_shape))};
@@ -70,8 +79,8 @@ public: \
 
 DEF_GOP_REDUCE(Max, 1);
 DEF_GOP_REDUCE(Min, 1);
-DEF_GOP_REDUCE(Sum, 1);
-DEF_GOP_REDUCE(Mean, 1);
+DEF_GOP_REDUCE(Sum, 2);
+DEF_GOP_REDUCE(Mean, 2);
 
 #undef DEF_GOP_REDUCE
 

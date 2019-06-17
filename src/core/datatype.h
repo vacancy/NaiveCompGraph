@@ -66,6 +66,12 @@ DEF_DTYPE_CCTYPE(Float64, double);
     NCG_DTYPE_SWITCH(Float64, MACRO); \
 }
 
+#define NCG_DTYPE_SWITCH_FLOAT(dtype_var, MACRO) switch(dtype_var) { \
+    NCG_DTYPE_SWITCH(Float32, MACRO); \
+    NCG_DTYPE_SWITCH(Float64, MACRO); \
+    default: break; \
+}
+
 #define NCG_INSTANTIATE_DTYPE(dtype_, MACRO_) template MACRO_(dtype_)
 
 #define NCG_DTYPE_INSTANTIATE_ALL(MACRO) \

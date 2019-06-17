@@ -28,8 +28,8 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
-        auto tensor = ctx.tensor(m_inputs[0]);
-        auto shape_tensor = fromcc(DTypeName::Int64, tensor->desc().shape_vec());
+        auto input = ctx.tensor(m_inputs[0]);
+        auto shape_tensor = fromcc(DTypeName::Int64, input->desc().shape_vec());
         ctx.set_tensor(m_outputs[0], shape_tensor);
     }
 
@@ -40,7 +40,7 @@ class OpShapeOfIndexDesc : public OpDesc {
 public:
     OpShapeOfIndexDesc() : axis(0) {}
     OpShapeOfIndexDesc(ssize_t axis) : axis(axis) {}
-    virtual ~OpShapeOfIndexDesc() {}
+    virtual ~OpShapeOfIndexDesc() = default;
 
     ssize_t axis;
 };
@@ -52,7 +52,9 @@ public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
         const auto &desc = this->template desc<OpShapeOfIndexDesc>();
-        NCG_OP_CHECK_INPUT_DIM_GEQ(graph, inputs, 0, desc.axis);
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+        NCG_OP_CHECK_INPUT_DIM_GEQ(graph, inputs, 0, axis);
     }
 
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
@@ -60,9 +62,12 @@ public:
     }
 
     virtual void forward(GraphForwardContext &ctx) const {
+        auto input = ctx.tensor(m_inputs[0]);
         const auto &desc = this->template desc<OpShapeOfIndexDesc>();
-        auto tensor = ctx.tensor(m_inputs[0]);
-        auto shape_tensor = fromcc(DTypeName::Int64, tensor->desc().shape(desc.axis));
+        auto axis = desc.axis;
+        if (axis < 0) axis += input->desc().dim();
+
+        auto shape_tensor = fromcc(DTypeName::Int64, input->desc().shape(axis));
         ctx.set_tensor(m_outputs[0], shape_tensor);
     }
 
@@ -236,12 +241,54 @@ public:
 class GOpSqueeze : public GraphOpWrapper<OpSqueeze>, public GraphSingleOutputOp {
 public:
     NCG_GOP_DEF_NAME(GOpSqueeze);
+
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
+
+        const auto &desc = this->template desc<OpSqueezeDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+        NCG_OP_CHECK_INPUT_DIM_GEQ(graph, inputs, 0, axis);
+    }
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        const auto &desc = this->template desc<OpSqueezeDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape.erase(shape.begin() + axis);
+
+        return {make_tensor(0, TensorDesc(inputs[0]->desc().dtype(), shape))};
+    }
+
     virtual void backward(Graph &graph, GTensorPtr loss);
 };
 
 class GOpUnsqueeze : public GraphOpWrapper<OpUnsqueeze>, public GraphSingleOutputOp {
 public:
-    NCG_GOP_DEF_NAME(GOpSqueeze);
+    NCG_GOP_DEF_NAME(GOpUnsqueeze);
+
+    virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
+
+        const auto &desc = this->template desc<OpUnsqueezeDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+        NCG_OP_CHECK_INPUT_DIM_GEQ(graph, inputs, 0, axis - 1);
+    }
+
+    virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
+        const auto &desc = this->template desc<OpUnsqueezeDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+
+        auto shape = inputs[0]->desc().shape_vec();
+        shape.insert(shape.begin() + axis, 1);
+
+        return {make_tensor(0, TensorDesc(inputs[0]->desc().dtype(), shape))};
+    }
+
     virtual void backward(Graph &graph, GTensorPtr loss);
 };
 

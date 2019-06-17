@@ -10,6 +10,8 @@
 #include "graph/graph.h"
 #include "graph/ops/grad.h"
 
+#include <sstream>
+
 namespace ncg {
 
 GraphTopoSorter::GraphTopoSorter(Graph &graph) : m_graph(graph) {
@@ -51,6 +53,10 @@ std::ostringstream &Graph::error(const GraphOp *op) {
     auto &error = RuntimeContext::error();
     // error << op->op_name() << ": ";
     return error;
+}
+
+const std::vector<GOpPtr> &Graph::ops() const {
+    return m_ops;
 }
 
 GOpPtr Graph::find_op(const std::string &name) {
@@ -134,6 +140,7 @@ TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
 
     for (const GraphOp *op: sorter->sorted()) {
         op->forward(*this);
+        using namespace std;
         if (!ok()) {
             return outputs;
         }
@@ -154,7 +161,10 @@ TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
 
 TensorPtr GraphForwardContext::tensor(const GTensorPtr &gtensor) {
     auto it = m_storage.find(reinterpret_cast<std::uintptr_t>(gtensor.get()));
-    ncg_assert(it != m_storage.end());
+    if (it == m_storage.end()) {
+    	RuntimeContext::error() << "Can not found tensor: " << gtensor.get() << " " << gtensor << ".";
+    }
+    ncg_assert_msg(ok(), error_str());
     return it->second;
 }
 

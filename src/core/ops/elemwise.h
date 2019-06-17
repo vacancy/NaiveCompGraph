@@ -34,6 +34,8 @@ public:
 
 class OpCast : public OpElemwiseBase {
 public:
+    NCG_OP_DEF_NAME(OpCast);
+
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         OpElemwiseBase::check_inputs(ctx, inputs);
         NCG_OP_CHECK_CTX_CLEAN(ctx);
@@ -163,8 +165,6 @@ private:
     }
 };
 
-namespace {
-
 enum class UnaryOpKernelType : int {
     Neg,
     Sin,
@@ -275,8 +275,6 @@ struct BinaryOpKernel {
         }
     }
 };
-
-} /* !namespace <anonymous> */
 
 #define DEF_UNARY_ELEMWISE_OP(name) \
 class Op##name : public OpUnaryElemwiseBase<UnaryOpKernel<UnaryOpKernelType::name>> { \

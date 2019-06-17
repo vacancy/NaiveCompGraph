@@ -60,7 +60,10 @@ void GOpSplit::backward(Graph &graph, GTensorPtr loss) {
     for (auto &o : m_outputs) {
         auto grad = o->grad(loss);
         if (grad == nullptr) {
-            grad = graph.op<GOpZerosLike>(nullptr, o);
+            grad = graph.op<GOpZeros>(
+                OpDescPtr(new OpZerosDesc(o->desc().dtype(), o->desc().shape_vec())),
+                graph.op<GOpShapeOf>(nullptr, o)
+            );
         }
         output_grads.push_back(grad);
     }

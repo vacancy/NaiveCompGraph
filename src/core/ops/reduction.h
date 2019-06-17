@@ -35,8 +35,11 @@ class OpReduceBase : public Op {
 public:
     virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
         const auto &desc = this->template desc<OpReduceDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
+
         NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
-        NCG_OP_CHECK_INPUT_DIM_GEQ(ctx, inputs, 0, desc.axis);
+        NCG_OP_CHECK_INPUT_DIM_GEQ(ctx, inputs, 0, axis);
     }
 };
 
@@ -46,10 +49,12 @@ public:
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         const auto input = inputs[0];
         const auto &desc = this->template desc<OpReduceDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
 
         TensorVec outputs;
 
-#define REDUCE_DTYPE_CASE(dtype_name) outputs = kernel_(ctx, input->template as<DTypeName::dtype_name>(), desc.axis, desc.keepdims)
+#define REDUCE_DTYPE_CASE(dtype_name) outputs = kernel_(ctx, input->template as<DTypeName::dtype_name>(), axis, desc.keepdims)
 NCG_DTYPE_SWITCH_ALL(input->desc().dtype(), REDUCE_DTYPE_CASE);
 #undef REDUCE_DTYPE_CASE
 
@@ -75,7 +80,7 @@ private:
         indices_ptr = empty(DTypeName::Int64, output_shape);
 
         auto output = output_ptr->template as<DT>();
-        auto indices = output_ptr->template as<DT>();
+        auto indices = indices_ptr->template as<DTypeName::Int64>();
 
         const auto &input_default_stride = input->desc().get_default_stride();
         const auto &output_default_stride = output->desc().get_default_stride();
@@ -131,10 +136,12 @@ public:
     virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
         const auto input = inputs[0];
         const auto &desc = this->template desc<OpReduceDesc>();
+        auto axis = desc.axis;
+        if (axis < 0) axis += inputs[0]->desc().dim();
 
         TensorVec outputs;
 
-#define REDUCE_DTYPE_CASE(dtype_name) outputs = kernel_(ctx, input->template as<DTypeName::dtype_name>(), desc.axis, desc.keepdims)
+#define REDUCE_DTYPE_CASE(dtype_name) outputs = kernel_(ctx, input->template as<DTypeName::dtype_name>(), axis, desc.keepdims)
 NCG_DTYPE_SWITCH_ALL(input->desc().dtype(), REDUCE_DTYPE_CASE);
 #undef REDUCE_DTYPE_CASE
 

@@ -47,15 +47,21 @@ const GTensorVec &GraphOp::outputs() const {
 }
 
 const GTensorVec &GraphOp::operator () (Graph &graph, OpDescPtr desc, const GTensorVec &inputs) {
+    if (graph.is_error()) {
+        return m_outputs;
+    }
+
     ncg_assert_msg(!m_initialized, std::string("Op ") + name() + " initialized twice.");
     m_initialized = true;
     m_desc = desc;
 
     check_inputs(graph, inputs);
     m_inputs = inputs;
-    if (graph.ok()) {
-        m_outputs = init_outputs(graph, inputs);
+    if (graph.is_error()) {
+        return m_outputs;
     }
+
+    m_outputs = init_outputs(graph, inputs);
     return m_outputs;
 }
 

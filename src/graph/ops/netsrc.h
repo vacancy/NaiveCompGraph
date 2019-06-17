@@ -129,7 +129,7 @@ public:
         if (m_inputs.size() == 0) {
             shape = desc.shape_vec();
         } else {
-            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[1]));
+            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[0]));
             shape = ShapeVec(tmp_shape.begin(), tmp_shape.end());
         }
         auto tensor = zeros(desc.dtype(), shape);
@@ -159,10 +159,10 @@ public:
         if (m_inputs.size() == 0) {
             shape = desc.shape_vec();
         } else {
-            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[1]));
+            auto tmp_shape = tocc_vector<ssize_t>(ctx.tensor(m_inputs[0]));
             shape = ShapeVec(tmp_shape.begin(), tmp_shape.end());
         }
-        auto tensor = zeros(desc.dtype(), shape);
+        auto tensor = ones(desc.dtype(), shape);
         ctx.set_tensor(m_outputs[0], tensor);
     }
 };

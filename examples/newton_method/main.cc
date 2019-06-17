@@ -18,8 +18,11 @@ using namespace std;
 
 void solve() {
     Graph graph;
-    auto x = graph.op<GOpPlaceholder>("x", OpDescPtr(new GOpPlaceholderDesc(DTypeName::Float64, {})));
-    auto y = graph.op<GOpConstant>("y0", OpDescPtr(new GOpConstantDesc(scalar(DTypeName::Float64, 0))));
+    Session session(graph);
+    as_default_graph(graph);
+    as_default_session(session);
+
+    auto x = G::placeholder("x", {}), y = as_gtensor(float(0));
 
     int k;
     cin >> k;
@@ -27,32 +30,36 @@ void solve() {
         double j;
         cin >> j;
 
-        auto pi = graph.op<GOpConstant>("p" + std::to_string(i), OpDescPtr(new GOpConstantDesc(scalar(DTypeName::Float64, i))));
-        auto ai = graph.op<GOpConstant>("a" + std::to_string(i), OpDescPtr(new GOpConstantDesc(scalar(DTypeName::Float64, j))));
-        y = graph.op<GOpAdd>(nullptr, y, graph.op<GOpMul>(nullptr, ai, graph.op<GOpPow>(nullptr, x, pi)));
+        float pi = i, ai = j;
+        y = y + ai * G::pow(x, pi);
     }
 
     graph.backward(y);
-    auto new_x = graph.op<GOpSub>(nullptr, x, graph.op<GOpDiv>(nullptr, y, x->grad(y)));
+    auto new_x = x - y / x->grad(y);
 
     double x_val;
     cin >> x_val;
 
-    Session session(graph);
     for (int i = 0; i < 5; ++i) {
-        GraphForwardContext ctx(session);
-        ctx.feed("x", scalar(DTypeName::Float64, x_val));
-        auto outputs = ctx.eval({new_x, y, x->grad(y)});
+        GraphForwardContext ctx;
+        ctx.feed("x", scalar(DTypeName::Float32, x_val));
+        auto outputs = ctx.eval({new_x, x, y, x->grad(y)});
 
-        // cerr << "debug"
-        //      << " x = " << x_val
-        //      << " ; y = " << outputs[1]->as<DTypeName::Float64>()->elat(0)
-        //      << " ; y' = " << outputs[2]->as<DTypeName::Float64>()->elat(0)
-        //      << endl;
-        x_val = outputs[0]->as<DTypeName::Float64>()->elat(0);
+        x_val = outputs[0]->as<DTypeName::Float32>()->elat(0);
         cout << x_val << " ";
+
+        // cerr << "Iter " << i << endl;
+        // cerr << std::string(80, '=') << endl;
+        // cerr << "    x = " << outputs[1]->as<DTypeName::Float32>()->elat(0) << endl;
+        // cerr << "    y = " << outputs[2]->as<DTypeName::Float32>()->elat(0) << endl;
+        // cerr << "gy/gx = " << outputs[3]->as<DTypeName::Float32>()->elat(0) << endl;
+        // cerr << "new_x = " << outputs[0]->as<DTypeName::Float32>()->elat(0) << endl;
+        // cerr << endl;
     }
     cout << endl;
+
+    restore_default_session();
+    restore_default_graph();
 }
 
 int main() {

@@ -270,34 +270,5 @@ public:
     }
 };
 
-class OpAutoBroadcast : public Op {
-    NCG_OP_DEF_NAME(OpAutoBroadcast);
-
-    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        NCG_OP_CHECK_NONEMPTY_INPUTS(ctx, inputs);
-        NCG_OP_CHECK_BROADCASTABLE_SHAPE(ctx, inputs);
-    }
-
-    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        auto shape = inputs[0]->desc().shape_vec();
-
-        for (ssize_t i = 0; i < inputs.size(); ++i) {
-            for (ssize_t j = 0; j < shape.size(); ++j) {
-                shape[j] = std::max(inputs[i]->desc().shape(j), shape[j]);
-            }
-        }
-
-        TensorVec outputs(inputs.size());
-        auto expand_op = std::make_unique<OpExpand>();
-        expand_op->set_desc(std::make_shared<OpExpandDesc>(shape));
-
-        for (ssize_t i = 0; i < inputs.size(); ++i) {
-            outputs[i] = expand_op->execute(ctx, {inputs[i]})[0];
-        }
-
-        return outputs;
-    }
-};
-
 } /* !namespace ncg */
 
