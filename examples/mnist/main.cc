@@ -86,6 +86,11 @@ public:
         return outputs;
     }
 
+    ssize_t epoch_size() const {
+        ssize_t n = m_data[0]->desc().shape(0);
+        return n / m_batch_size + (n % m_batch_size != 0);
+    }
+
 private:
     ncg::TensorVec m_data;
     ssize_t m_batch_size;
@@ -131,17 +136,6 @@ struct MLPModel {
         return ops;
     }
 
-    TensorVec run(const GTensorVec &outputs, TensorPtr image, TensorPtr label=nullptr) {
-        GraphForwardContext ctx;
-        ctx.feed("image", image);
-
-        if (label != nullptr) {
-            ctx.feed("label", label);
-        }
-
-        return ctx.eval(outputs);
-    }
-
     std::mt19937 &rng;
     GTensorPtr image, label, linear1, activation1, logits, prob, pred, loss, accuracy;
 };
@@ -165,7 +159,7 @@ int main() {
 
     std::cerr << "Building data loaders..." << std::endl;
     auto train_loader = std::unique_ptr<mnist::DataLoader>(new mnist::DataLoader({train_images, train_labels}, 100, rng));
-    auto test_loader = std::unique_ptr<mnist::DataLoader>(new mnist::DataLoader({train_images, train_labels}, 100, rng));
+    auto test_loader = std::unique_ptr<mnist::DataLoader>(new mnist::DataLoader({test_images, test_labels}, 100, rng));
 
     std::cerr << "Building the MLP model..." << std::endl;
     auto model = std::make_unique<mnist_model::MLPModel>(rng);
@@ -174,19 +168,47 @@ int main() {
     train_ops.insert(train_ops.begin() + 1, model->accuracy);
     auto test_ops = {model->loss, model->accuracy};
 
-    for (int i = 1; i <= 100; ++i) {
+    for (int i = 1; i <= train_loader->epoch_size() * 40; ++i) {
         auto inputs = train_loader->next();
         ncg::GraphForwardContext ctx;
         ctx.feed("image", inputs[1].reshape({-1, 784}));
         ctx.feed("label", inputs[2].cast(ncg::DTypeName::Int64));
-
         auto outputs = ctx.eval(train_ops);
         ncg_assert_msg(ctx.ok(), ctx.error_str());
 
-        std::cerr << "Iteration [" << i << "]: "
+        std::cerr << "Iteration [" << i / train_loader->epoch_size() + 1 << "::" << (i - 1) % train_loader->epoch_size() + 1 << "/" << train_loader->epoch_size() << "]: "
             << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
-            << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << "."
-            << std::endl;
+            << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
+        if (i % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
+
+        if (i % train_loader->epoch_size() == 0) {
+            double loss = 0, accuracy = 0;
+            ssize_t tot = 0;
+
+            for (int j = 1; j <= test_loader->epoch_size(); ++j) {
+                auto inputs = test_loader->next();
+                ncg::GraphForwardContext ctx;
+                ctx.feed("image", inputs[1].reshape({-1, 784}));
+                ctx.feed("label", inputs[2].cast(ncg::DTypeName::Int64));
+                auto outputs = ctx.eval(test_ops);
+                ncg_assert_msg(ctx.ok(), ctx.error_str());
+
+                std::cerr << "Evaluation [" << i << "::" << j << "/" << test_loader->epoch_size() << "]: "
+                    << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
+                    << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
+                if (j % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
+
+                auto batch_size = inputs[1]->desc().shape(0);
+                loss += ncg::tocc_scalar<double>(outputs[0]) * batch_size;
+                accuracy += ncg::tocc_scalar<double>(outputs[1]) * batch_size;
+                tot += batch_size;
+            }
+
+            std::cerr << "Evaluation [" << i << "]: "
+                << "loss = " << loss / tot << ", "
+                << "accuracy = " << accuracy / tot << "."
+                << std::endl;
+        }
     }
 
     return 0;
