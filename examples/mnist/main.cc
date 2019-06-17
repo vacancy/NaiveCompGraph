@@ -198,9 +198,10 @@ int main() {
                     << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
                 if (j % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
 
-                loss += ncg::tocc_scalar<double>(outputs[0]);
-                accuracy += ncg::tocc_scalar<double>(outputs[1]);
-                tot += inputs[1]->desc().shape(0);
+                auto batch_size = inputs[1]->desc().shape(0);
+                loss += ncg::tocc_scalar<double>(outputs[0]) * batch_size;
+                accuracy += ncg::tocc_scalar<double>(outputs[1]) * batch_size;
+                tot += batch_size;
             }
 
             std::cerr << "Evaluation [" << i << "]: "
