@@ -71,7 +71,6 @@ private:
 
         if (!desc.transpose_a && !desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
-                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
                         c_ptr[i * M + j] += a_ptr[i * K + k] * b_ptr[k * M + j];
@@ -79,7 +78,6 @@ private:
                 }
             }
         } else if (!desc.transpose_a && desc.transpose_b) {
-            #pragma omp parallel for
             for (ssize_t i = 0; i < N; ++i) {
                 for (ssize_t j = 0; j < M; ++j) {
                     for (ssize_t k = 0; k < K; ++k) {
@@ -89,7 +87,6 @@ private:
             }
         } else if (desc.transpose_a && !desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
-                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
                         c_ptr[i * M + j] += a_ptr[k * N + i] * b_ptr[k * M + j];
@@ -98,7 +95,6 @@ private:
             }
         } else if (desc.transpose_a && desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
-                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
                         c_ptr[i * M + j] += a_ptr[k * N + i] * b_ptr[j * K + k];

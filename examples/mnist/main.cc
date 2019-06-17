@@ -10,6 +10,7 @@
 #include "nn/ops.h"
 
 #include <iomanip>
+#include <chrono>
 
 namespace ncg {
 
@@ -174,6 +175,8 @@ int main() {
     auto test_ops = {model->loss, model->accuracy};
 
     for (int i = 1; i <= train_loader->epoch_size() * 40; ++i) {
+        auto start = std::chrono::steady_clock::now();
+
         auto inputs = train_loader->next();
         ncg::GraphForwardContext ctx;
         ctx.feed("image", inputs[1].reshape({-1, 784}));
@@ -181,9 +184,12 @@ int main() {
         auto outputs = ctx.eval(train_ops);
         ncg_assert_msg(ctx.ok(), ctx.error_str());
 
+        auto end = std::chrono::steady_clock::now();
+
         std::cerr << "Iteration [" << i / train_loader->epoch_size() + 1 << "::" << (i - 1) % train_loader->epoch_size() + 1 << "/" << train_loader->epoch_size() << "]: "
             << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
-            << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
+            << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ", "
+            << "time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "(ms)" << ".";
         if (i % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
 
         if (i % train_loader->epoch_size() == 0) {
