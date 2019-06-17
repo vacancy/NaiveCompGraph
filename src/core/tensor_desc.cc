@@ -159,7 +159,11 @@ size_t TensorDesc::numel() const {
 }
 
 bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
-    for (ssize_t i = 0; i < TensorMaxDim; ++i) {
+    if (dim() != rhs.dim()) {
+        return false;
+    } 
+
+    for (ssize_t i = 0; i < dim(); ++i) {
         if (allow_broadcast) {
             if (m_shape[i] != rhs.m_shape[i] && !(m_shape[i] == 1 || rhs.m_shape[i] == 1)) return false;
         } else {

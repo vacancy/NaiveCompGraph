@@ -140,7 +140,6 @@ TensorVec GraphForwardContext::eval(const GTensorVec &targets) {
 
     for (const GraphOp *op: sorter->sorted()) {
         op->forward(*this);
-        using namespace std;
         if (!ok()) {
             return outputs;
         }

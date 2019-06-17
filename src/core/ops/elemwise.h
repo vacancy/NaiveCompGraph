@@ -46,9 +46,9 @@ public:
         const auto &desc = this->template desc<OpCastDesc>();
         TensorPtr output = empty(desc.dtype, inputs[0]->desc().shape_vec());
 
-#define CAST_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
-NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), CAST_COMPUTE_DTYPE);
-#undef CAST_COMPUTE_DTYPE
+#define CAST_DTYPE_CASE(dtype_name) kernel_<DTypeName::dtype_name>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), CAST_DTYPE_CASE);
+#undef CAST_DTYPE_CASE
 
         return {output};
     }
@@ -56,9 +56,17 @@ NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), CAST_COMPUTE_DTYPE);
 private:
     template <DTypeName DT>
     void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        const auto &desc = this->template desc<OpCastDesc>();
+#define CAST_DTYPE_CASE(dtype_name) kernel_inner_<DT, DTypeName::dtype_name>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(desc.dtype, CAST_DTYPE_CASE);
+#undef CAST_DTYPE_CASE
+    }
+
+    template <DTypeName DT, DTypeName ODT>
+    void kernel_inner_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
         size_t n = inputs[0]->desc().numel();
         auto a = inputs[0]->as<DT>();
-        auto b = output->as<DT>();
+        auto b = output->as<ODT>();
         for (ssize_t i = 0; i < n; ++i) {
             b->mutable_elat(i) = a->elat(i);
         }

@@ -6,8 +6,8 @@
 # simple c++ project
 
 
-SRC_DIR = ../../src
-INC_DIR = ../../src
+SRC_DIR = src
+INC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
 LIB_DIR = lib
@@ -21,12 +21,10 @@ BIN_TARGET = $(BIN_DIR)/$(TARGET)
 
 INCLUDE_DIR = -I $(SRC_DIR) -I $(INC_DIR)
 
-
-CXXFLAGS = -O2 -w
+CXXFLAGS = -O3 -w
 # CXXFLAGS = -O2 -w -fopenmp
 # CXXFLAGS = -g
 # CXXFLAGS = -pg
-
 
 #CXXFLAGS += $(DEFINES)
 CXXFLAGS += -std=c++17

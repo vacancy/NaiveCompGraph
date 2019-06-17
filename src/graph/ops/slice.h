@@ -241,12 +241,12 @@ public:
 
     virtual void forward(GraphForwardContext &ctx) const {
         auto input = ctx.tensor(m_inputs[0]);
+        auto indices = ctx.tensor(m_inputs[1]);
         const auto &desc = this->template desc<OpIndexSelectBackwardDesc>();
         auto axis = desc.axis;
         if (axis < 0) axis += input->desc().dim();
-        auto indices = ctx.tensor(m_inputs[1]);
 
-        if (m_inputs.size() == 1) {
+        if (m_inputs.size() == 2) {
             auto op = std::make_unique<OpIndexSelectBackward>();
             op->set_desc(m_desc);
             auto output = op->execute(ctx, {input, indices});
@@ -312,12 +312,12 @@ public:
 
     virtual void forward(GraphForwardContext &ctx) const {
         auto input = ctx.tensor(m_inputs[0]);
+        auto indices = ctx.tensor(m_inputs[1]);
         const auto &desc = this->template desc<OpGatherBackwardDesc>();
         auto axis = desc.axis;
         if (axis < 0) axis += input->desc().dim();
-        auto indices = ctx.tensor(m_inputs[1]);
 
-        if (m_inputs.size() == 1) {
+        if (m_inputs.size() == 2) {
             auto op = std::make_unique<OpGatherBackward>();
             op->set_desc(m_desc);
             auto output = op->execute(ctx, {input, indices});
