@@ -136,7 +136,7 @@ void TensorDesc::set_default_stride() {
     }
 }
 
-bool TensorDesc::is_continugous() const {
+bool TensorDesc::is_contiguous() const {
     size_t d = dim();
     if (d == 0) {
         return true;
@@ -148,6 +148,20 @@ bool TensorDesc::is_continugous() const {
     }
     return true;
 }
+
+ bool TensorDesc::is_scalar_broadcasted() const {
+    size_t d = dim();
+    if (d == 0) {
+        return true;
+    }
+    for (ssize_t i = 0; i < d; ++i) {
+        if (m_shape[i] > 1 && m_stride[i] != 0) {
+            return false;
+        }
+    }
+    return true;
+ }
+
 
 size_t TensorDesc::numel() const {
     size_t n = 1;

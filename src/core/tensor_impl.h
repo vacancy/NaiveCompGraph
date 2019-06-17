@@ -61,7 +61,7 @@ TensorImpl<DT>::TensorImpl(const TensorDesc &desc, typename TensorImpl<DT>::ccty
 template <DTypeName DT>
 void TensorImpl<DT>::make_own_data() {
     if (!m_own_data) {
-        if (m_desc.is_continugous()) {
+        if (m_desc.is_contiguous()) {
             m_storage = std::shared_ptr<TensorStorage>(m_storage->clone(m_data_ptr_offset, m_desc.numel()));
             m_own_data = true;
             m_data_ptr_offset = 0;
@@ -73,7 +73,7 @@ void TensorImpl<DT>::make_own_data() {
 
 template <DTypeName DT>
 void TensorImpl<DT>::make_contiguous() {
-    if (m_desc.is_continugous()) {
+    if (m_desc.is_contiguous()) {
         return;
     } else {
         auto storage = new TensorStorageImpl<DT>(m_desc.numel());

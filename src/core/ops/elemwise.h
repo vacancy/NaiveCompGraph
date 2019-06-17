@@ -67,8 +67,19 @@ NCG_DTYPE_SWITCH_ALL(desc.dtype, CAST_DTYPE_CASE);
         size_t n = inputs[0]->desc().numel();
         auto a = inputs[0]->as<DT>();
         auto b = output->as<ODT>();
-        for (ssize_t i = 0; i < n; ++i) {
-            b->mutable_elat(i) = a->elat(i);
+
+        auto a_ptr = a->data_ptr();
+        auto b_ptr = b->mutable_data_ptr();
+        bool a_con = inputs[0]->desc().is_contiguous();
+
+        if (a_con) {
+            for (ssize_t i = 0; i < n; ++i) {
+                b_ptr[i] = static_cast<typename DType<DT>::cctype>(a_ptr[i]);
+            }
+        } else {
+        	for (ssize_t i = 0; i < n; ++i) {
+            	b_ptr[i] = static_cast<typename DType<DT>::cctype>(a->elat(i));
+            }
         }
     }
 };
@@ -101,74 +112,13 @@ private:
         auto b = inputs[1]->as<DT>();
         auto c = inputs[2]->as<DT>();
         auto d = output->as<DT>();
+
+        auto a_ptr = a->data_ptr(), b_ptr = b->data_ptr(), c_ptr = c->data_ptr();
+        auto d_ptr = d->mutable_data_ptr();
+        bool a_con = a->desc().is_contiguous(), b_con = b->desc().is_contiguous(), c_con = c->desc().is_contiguous();
+
         for (ssize_t i = 0; i < n; ++i) {
-            d->mutable_elat(i) = a->elat(i) > 0 ? b->elat(i) : c->mutable_elat(i);
-        }
-    }
-};
-
-template <typename OpKernel>
-class OpUnaryElemwiseBase : public OpElemwiseBase {
-public:
-    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        OpElemwiseBase::check_inputs(ctx, inputs);
-        NCG_OP_CHECK_CTX_CLEAN(ctx);
-        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
-    }
-
-    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
-
-#define UNARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
-NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
-#undef UNARY_COMPUTE_DTYPE
-
-        return {output};
-    }
-
-private:
-    template <DTypeName DT>
-    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
-        size_t n = inputs[0]->desc().numel();
-        auto kernel = OpKernel();
-        auto a = inputs[0]->as<DT>();
-        auto b = output->as<DT>();
-        for (ssize_t i = 0; i < n; ++i) {
-            kernel.template compute<DT>(ctx, this, a->elat(i), b->mutable_elat(i));
-        }
-    }
-};
-
-template <typename OpKernel>
-class OpBinaryElemwiseBase : public OpElemwiseBase {
-public:
-    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
-        OpElemwiseBase::check_inputs(ctx, inputs);
-        NCG_OP_CHECK_CTX_CLEAN(ctx);
-        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
-    }
-
-    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
-        size_t n = inputs[0]->desc().numel();
-        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
-
-#define BINARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
-NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
-#undef BINARY_COMPUTE_DTYPE
-
-        return {output};
-    }
-
-private:
-    template <DTypeName DT>
-    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
-        size_t n = inputs[0]->desc().numel();
-        auto kernel = OpKernel();
-        auto a = inputs[0]->as<DT>();
-        auto b = inputs[1]->as<DT>();
-        auto c = output->as<DT>();
-        for (ssize_t i = 0; i < n; ++i) {
-            kernel.template compute<DT>(ctx, this, a->elat(i), b->elat(i), c->mutable_elat(i));
+            d_ptr[i] = (a_con ? a_ptr[i] : a->elat(i)) > 0 ? (b_con ? b_ptr[i] : b->elat(i)) : (c_con ? c_ptr[i] : c->elat(i));
         }
     }
 };
@@ -185,25 +135,22 @@ enum class UnaryOpKernelType : int {
     Reciprocal,
 };
 
-template <UnaryOpKernelType OpType>
+template <UnaryOpKernelType OpType, DTypeName DT>
 struct UnaryOpKernel {
-    template <DTypeName DT>
+    UnaryOpKernel(Op *self, OpContext &ctx) {
+        if (OpType != UnaryOpKernelType::Neg) {
+            if (DT != DTypeName::Float32 && DT != DTypeName::Float64) {
+                ctx.error(self) << "Unary Op not implemented for non-float tensors.";
+            }
+        }
+    }
+
     void compute(
         OpContext &ctx,
         Op *op,
         const typename DType<DT>::cctype &a,
         typename DType<DT>::cctype &b
     ) {
-        if (OpType == UnaryOpKernelType::Neg) {
-            b = -a;
-            return;
-        }
-
-        if (DT != DTypeName::Float32 && DT != DTypeName::Float64) {
-            ctx.error(op) << "Operator for integer not implemented";
-            return;
-        }
-
         switch (OpType) {
             case UnaryOpKernelType::Neg: b = -a; break;
             case UnaryOpKernelType::Sin: b = std::sin(a); break;
@@ -230,6 +177,49 @@ struct UnaryOpKernel {
     }
 };
 
+template <UnaryOpKernelType OpKernelType>
+class OpUnaryElemwiseBase : public OpElemwiseBase {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        OpElemwiseBase::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 1);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
+
+#define UNARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), UNARY_COMPUTE_DTYPE);
+#undef UNARY_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto kernel = UnaryOpKernel<OpKernelType, DT>(this, ctx);
+        auto a = inputs[0]->as<DT>();
+        auto b = output->as<DT>();
+
+        auto a_ptr = a->data_ptr();
+        auto b_ptr = b->mutable_data_ptr();
+        bool a_con = a->desc().is_contiguous();
+
+        if (a_con) {
+            for (ssize_t i = 0; i < n; ++i) {
+                kernel.compute(ctx, this, a_ptr[i], b_ptr[i]);
+            }
+        } else {
+            for (ssize_t i = 0; i < n; ++i) {
+                kernel.compute(ctx, this, a->elat(i), b_ptr[i]);
+            }
+        }
+    }
+};
+
 enum class BinaryOpKernelType : int {
     Add,
     Sub,
@@ -246,9 +236,10 @@ enum class BinaryOpKernelType : int {
     Max
 };
 
-template <BinaryOpKernelType OpType>
+template <BinaryOpKernelType OpType, DTypeName DT>
 struct BinaryOpKernel {
-    template <DTypeName DT>
+    BinaryOpKernel(Op *self, OpContext &ctx) {}
+
     void compute(
         OpContext &ctx,
         Op *op,
@@ -284,8 +275,65 @@ struct BinaryOpKernel {
     }
 };
 
+template <BinaryOpKernelType OpKernelType>
+class OpBinaryElemwiseBase : public OpElemwiseBase {
+public:
+    virtual void check_inputs(OpContext &ctx, const TensorVec &inputs) {
+        OpElemwiseBase::check_inputs(ctx, inputs);
+        NCG_OP_CHECK_CTX_CLEAN(ctx);
+        NCG_OP_CHECK_NR_INPUTS(ctx, inputs, 2);
+    }
+
+    virtual TensorVec compute(OpContext &ctx, const TensorVec &inputs) {
+        size_t n = inputs[0]->desc().numel();
+        TensorPtr output = empty(inputs[0]->desc().dtype(), inputs[0]->desc().shape_vec());
+
+#define BINARY_COMPUTE_DTYPE(dtype) kernel_<DTypeName::dtype>(ctx, inputs, output)
+NCG_DTYPE_SWITCH_ALL(inputs[0]->desc().dtype(), BINARY_COMPUTE_DTYPE);
+#undef BINARY_COMPUTE_DTYPE
+
+        return {output};
+    }
+
+private:
+    template <DTypeName DT>
+    void kernel_(OpContext &ctx, const TensorVec &inputs, TensorPtr &output) {
+        size_t n = inputs[0]->desc().numel();
+        auto kernel = BinaryOpKernel<OpKernelType, DT>(this, ctx);
+        auto a = inputs[0]->as<DT>();
+        auto b = inputs[1]->as<DT>();
+        auto c = output->as<DT>();
+
+        auto a_ptr = a->data_ptr(), b_ptr = b->data_ptr();
+        auto c_ptr = c->mutable_data_ptr();
+        bool a_con = a->desc().is_contiguous(), b_con = b->desc().is_contiguous();
+        bool a_sca = a->desc().is_scalar_broadcasted(), b_sca = b->desc().is_scalar_broadcasted();
+
+#define BINARY_KERNEL_CASE(a_condition, b_condition, a_index, b_index) else if (a_condition && b_condition) { \
+    for (ssize_t i = 0; i < n; ++i) { \
+        kernel.compute(ctx, this, a_index, b_index, c_ptr[i]); \
+    } \
+}
+
+        if (false) {}
+        BINARY_KERNEL_CASE(a_con, b_con, a_ptr[i], b_ptr[i])
+        BINARY_KERNEL_CASE(a_con, b_sca, a_ptr[i], b_ptr[0])
+        BINARY_KERNEL_CASE(a_sca, b_con, a_ptr[0], b_ptr[i])
+        BINARY_KERNEL_CASE(a_sca, b_sca, a_ptr[0], b_ptr[0])
+        BINARY_KERNEL_CASE(true,  b_con, a->elat(i), b_ptr[i])
+        BINARY_KERNEL_CASE(true,  b_sca, a->elat(i), b_ptr[0])
+        BINARY_KERNEL_CASE(a_con, true,  a_ptr[i], b->elat(i))
+        BINARY_KERNEL_CASE(a_sca, true,  a_ptr[0], b->elat(i))
+        else {
+            for (ssize_t i = 0; i < n; ++i) {
+                kernel.compute(ctx, this, a->elat(i), b->elat(i), c_ptr[i]);
+            }
+        }
+    }
+};
+
 #define DEF_UNARY_ELEMWISE_OP(name) \
-class Op##name : public OpUnaryElemwiseBase<UnaryOpKernel<UnaryOpKernelType::name>> { \
+class Op##name : public OpUnaryElemwiseBase<UnaryOpKernelType::name> { \
 public: \
     NCG_OP_DEF_NAME(Op##name); \
 }
@@ -303,7 +351,7 @@ DEF_UNARY_ELEMWISE_OP(Reciprocal);
 #undef DEF_UNARY_ELEMWISE_OP
 
 #define DEF_BINARY_ELEMWISE_OP(name) \
-class Op##name : public OpBinaryElemwiseBase<BinaryOpKernel<BinaryOpKernelType::name>> { \
+class Op##name : public OpBinaryElemwiseBase<BinaryOpKernelType::name> { \
 public: \
     NCG_OP_DEF_NAME(Op##name); \
 }

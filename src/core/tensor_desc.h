@@ -57,7 +57,8 @@ public:
     ShapeVec get_default_stride() const;
     void set_default_stride();
 
-    bool is_continugous() const;
+    bool is_contiguous() const;
+    bool is_scalar_broadcasted() const;
     size_t numel() const;
     bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
     friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);

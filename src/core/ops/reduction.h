@@ -82,6 +82,11 @@ private:
         auto output = output_ptr->template as<DT>();
         auto indices = indices_ptr->template as<DTypeName::Int64>();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+        auto indices_data_ptr = indices->mutable_data_ptr();
+
         const auto &input_default_stride = input->desc().get_default_stride();
         const auto &output_default_stride = output->desc().get_default_stride();
         for (ssize_t i = 0; i < input->desc().numel(); ++i) {
@@ -103,15 +108,16 @@ private:
                 j = j3;
             }
 
+            const auto input_val = input_con ? input_data_ptr[i] : input->elat(i);
             if (ReduceType == ReduceType1::Min) {
-                if (input->elat(i) < output->elat(j)) {
-                    output->mutable_elat(j) = input->elat(i);
-                    indices->mutable_elat(j) = static_cast<DType<DTypeName::Int64>::cctype>(j2);
+                if (input_val < output_data_ptr[j]) {
+                    output_data_ptr[j] = input_val;
+                    indices_data_ptr[j] = static_cast<DType<DTypeName::Int64>::cctype>(j2);
                 }
             } else {
-                if (input->elat(i) > output->elat(j)) {
-                    output->mutable_elat(j) = input->elat(i);
-                    indices->mutable_elat(j) = static_cast<DType<DTypeName::Int64>::cctype>(j2);
+                if (input->elat(i) > output_data_ptr[j]) {
+                    output_data_ptr[j] = input_val;
+                    indices_data_ptr[j] = static_cast<DType<DTypeName::Int64>::cctype>(j2);
                 }
             }
         }
@@ -167,6 +173,10 @@ private:
         }
         auto output = output_ptr->template as<DT>();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         const auto &input_default_stride = input->desc().get_default_stride();
         const auto &output_default_stride = output->desc().get_default_stride();
         for (ssize_t i = 0; i < input->desc().numel(); ++i) {
@@ -188,12 +198,13 @@ private:
                 j = j3;
             }
 
+            const auto input_val = input_con ? input_data_ptr[i] : input->elat(i);
             if (ReduceType == ReduceType2::Sum) {
-                output->mutable_elat(j) += input->elat(i);
+                output_data_ptr[j] += input_val;
             } else if (ReduceType == ReduceType2::Mean) {
-                output->mutable_elat(j) += input->elat(i) / axis_size;
+                output_data_ptr[j] += input_val / axis_size;
             } else if (ReduceType == ReduceType2::Prod) {
-                output->mutable_elat(j) *= input->elat(i);
+                output_data_ptr[j] *= input_val;
             }
         }
 

@@ -78,9 +78,20 @@ private:
 
         ssize_t index = 0;
         for (ssize_t i = 0; i < inputs.size(); ++i) {
-            for (ssize_t j = 0; j < inputs[i]->desc().numel(); ++j) {
-                ssize_t k = output->elindex(j) + index * output->desc().stride(axis);
-                output_dtype->mutable_data_ptr()[k] = inputs_dtype[i]->elat(j);
+            auto i_ptr = inputs_dtype[i]->data_ptr();
+            bool i_con = inputs_dtype[i]->desc().is_contiguous();
+            auto n = inputs[i]->desc().numel();
+
+            if (i_con) {
+                for (ssize_t j = 0; j < n; ++j) {
+                    ssize_t k = output->elindex(j) + index * output->desc().stride(axis);
+                    output_dtype->mutable_data_ptr()[k] = i_ptr[j];
+                }
+            } else {
+                for (ssize_t j = 0; j < n; ++j) {
+                    ssize_t k = output->elindex(j) + index * output->desc().stride(axis);
+                    output_dtype->mutable_data_ptr()[k] = inputs_dtype[i]->elat(j);
+                }
             }
             index += inputs[i]->desc().shape(axis);
         }
@@ -222,6 +233,10 @@ private:
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         for (ssize_t i = 0; i < input->desc().numel(); ++i) {
             ssize_t j1, j2, j3;
 
@@ -236,7 +251,7 @@ private:
             }
 
             ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + (j2 + start) * output_default_stride[axis] + j3;
-            output->mutable_elat(ii) = input->elat(i);
+            output_data_ptr[ii] = input_con ? input_data_ptr[i] : input->elat(i);
         }
     }
 };
@@ -299,6 +314,10 @@ private:
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         for (ssize_t i = 0; i < output->desc().numel(); ++i) {
             ssize_t j1, j2, j3;
 
@@ -315,7 +334,7 @@ private:
             ssize_t k = static_cast<ssize_t>(index->at(j2));
             ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
 
-            output->mutable_elat(i) = input->elat(ii);
+            output_data_ptr[i] = input_con ? input_data_ptr[ii] : input->elat(ii);
         }
     }
 
@@ -380,6 +399,10 @@ private:
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         for (ssize_t i = 0; i < input->desc().numel(); ++i) {
             ssize_t j1, j2, j3;
 
@@ -396,7 +419,7 @@ private:
             ssize_t k = static_cast<ssize_t>(index->at(j2));
             ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + k * output_default_stride[axis] + j3;
 
-            output->mutable_elat(ii) += input->elat(i);
+            output_data_ptr[ii] += input_con ? input_data_ptr[i] : input->elat(i);
         }
     }
 };
@@ -465,6 +488,10 @@ private:
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         for (ssize_t i = 0; i < output->desc().numel(); ++i) {
             ssize_t j1, j2, j3;
 
@@ -481,7 +508,7 @@ private:
             ssize_t k = static_cast<ssize_t>(index->elat(i));
             ssize_t ii = j1 * ((axis == 0) ? 0 : input_default_stride[axis - 1]) + k * input_default_stride[axis] + j3;
 
-            output->mutable_elat(i) = input->elat(ii);
+            output_data_ptr[i] = input_con ? input_data_ptr[ii] : input->elat(ii);
         }
     }
 };
@@ -536,6 +563,10 @@ private:
         auto input_default_stride = input->desc().get_default_stride();
         auto output_default_stride = output->desc().get_default_stride();
 
+        auto input_data_ptr = input->data_ptr();
+        bool input_con = input->desc().is_contiguous();
+        auto output_data_ptr = output->mutable_data_ptr();
+
         for (ssize_t i = 0; i < input->desc().numel(); ++i) {
             ssize_t j1, j2, j3;
 
@@ -552,7 +583,7 @@ private:
             ssize_t k = static_cast<ssize_t>(index->elat(i));
             ssize_t ii = j1 * ((axis == 0) ? 0 : output_default_stride[axis - 1]) + k * output_default_stride[axis] + j3;
 
-            output->mutable_elat(ii) += input->elat(i);
+            output_data_ptr[ii] += input_con ? input_data_ptr[i] : input->elat(i);
         }
     }
 };
