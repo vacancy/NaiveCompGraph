@@ -9,6 +9,8 @@
 #include "ncg.h"
 #include "nn/ops.h"
 
+#include <iomanip>
+
 namespace ncg {
 
 std::ostream &print_matrix(std::ostream &out, ncg::TensorPtr tensor) {
@@ -143,6 +145,9 @@ struct MLPModel {
 } /* !namespace mnist_model */
 
 int main() {
+    std::cout << std::fixed << std::setprecision(4);
+    std::cerr << std::fixed << std::setprecision(4);
+
     std::random_device rd{};
     std::mt19937 rng{rd()};
 
