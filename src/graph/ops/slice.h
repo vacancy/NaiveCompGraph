@@ -293,7 +293,6 @@ public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS2(graph, inputs, 2, 3);
         NCG_OP_CHECK_INPUT_DTYPE_INT(graph, inputs, 1);
-        NCG_OP_CHECK_INPUT_DIM(graph, inputs, 1, 1);
 
         if (inputs.size() == 3) {
             NCG_OP_CHECK_INPUT_DTYPE_INT(graph, inputs, 2);

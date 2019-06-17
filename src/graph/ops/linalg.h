@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "core/tensor.h"
+#include "core/tensor_impl.h"
 #include "core/ops/linalg.h"
 #include "graph/op.h"
 

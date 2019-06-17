@@ -6,6 +6,7 @@
  */
 
 #include "core/tensor_extra_ops.h"
+#include "core/tensor_impl.h"
 
 namespace ncg {
 
