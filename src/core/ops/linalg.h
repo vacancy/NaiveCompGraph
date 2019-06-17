@@ -66,35 +66,42 @@ private:
         ssize_t M = !desc.transpose_b ? b->desc().shape(1) : b->desc().shape(0);
         ssize_t K = !desc.transpose_a ? a->desc().shape(1) : a->desc().shape(0);
 
+        auto a_ptr = a->data_ptr(), b_ptr = b->data_ptr();
+        auto c_ptr = c->mutable_data_ptr();
+
         if (!desc.transpose_a && !desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
+                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
-                        c->mutable_data_ptr()[i * M + j] += a->data_ptr()[i * K + k] * b->data_ptr()[k * M + j];
+                        c_ptr[i * M + j] += a_ptr[i * K + k] * b_ptr[k * M + j];
                     }
                 }
             }
         } else if (!desc.transpose_a && desc.transpose_b) {
+            #pragma omp parallel for
             for (ssize_t i = 0; i < N; ++i) {
                 for (ssize_t j = 0; j < M; ++j) {
                     for (ssize_t k = 0; k < K; ++k) {
-                        c->mutable_data_ptr()[i * M + j] += a->data_ptr()[i * K + k] * b->data_ptr()[j * K + k];
+                        c_ptr[i * M + j] += a_ptr[i * K + k] * b_ptr[j * K + k];
                     }
                 }
             }
         } else if (desc.transpose_a && !desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
+                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
-                        c->mutable_data_ptr()[i * M + j] += a->data_ptr()[k * N + i] * b->data_ptr()[k * M + j];
+                        c_ptr[i * M + j] += a_ptr[k * N + i] * b_ptr[k * M + j];
                     }
                 }
             }
         } else if (desc.transpose_a && desc.transpose_b) {
             for (ssize_t k = 0; k < K; ++k) {
+                #pragma omp parallel for
                 for (ssize_t i = 0; i < N; ++i) {
                     for (ssize_t j = 0; j < M; ++j) {
-                        c->mutable_data_ptr()[i * M + j] += a->data_ptr()[k * N + i] * b->data_ptr()[j * K + k];
+                        c_ptr[i * M + j] += a_ptr[k * N + i] * b_ptr[j * K + k];
                     }
                 }
             }
