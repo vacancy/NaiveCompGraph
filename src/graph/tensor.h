@@ -10,9 +10,6 @@
 #include "core/tensor.h"
 
 #include <cstdint>
-#include <iostream>
-#include <memory>
-#include <vector>
 #include <unordered_map>
 
 namespace ncg {

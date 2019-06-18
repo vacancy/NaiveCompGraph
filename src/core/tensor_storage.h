@@ -9,7 +9,6 @@
 
 #include "core/common.h"
 #include "core/datatype.h"
-#include <iostream>
 #include <limits>
 
 namespace ncg {

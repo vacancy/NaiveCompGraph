@@ -9,8 +9,6 @@
 #include "graph/op.h"
 #include "graph/graph.h"
 
-#include <sstream>
-
 namespace ncg {
 
 GraphOp::GraphOp() :

@@ -7,12 +7,7 @@
 
 #pragma once
 
-#include "core/common.h"
 #include "core/tensor.h"
-
-#include <string>
-#include <sstream>
-#include <iostream>
 
 namespace ncg {
 

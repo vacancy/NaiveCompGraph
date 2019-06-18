@@ -1,0 +1,14 @@
+3
+x P
+y P
+z C 3.0
+7
+a = x < y
+b = a <= y
+c = b > a
+d = c >= b
+e = d == c
+t = a + e
+res = t * z
+1
+EVAL res 2 x 1.0 y 2.0

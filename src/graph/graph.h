@@ -7,18 +7,12 @@
 
 #pragma once
 
-#include "core/common.h"
 #include "core/op.h"
 #include "graph/tensor.h"
 
 #include <cstdint>
-#include <string>
-#include <sstream>
-#include <memory>
-#include <vector>
 #include <unordered_set>
 #include <unordered_map>
-#include <type_traits>
 
 namespace ncg {
 
@@ -128,6 +122,7 @@ public:
 
 protected:
     std::vector<GOpPtr> m_ops;
+    std::unordered_set<std::uintptr_t> m_backproped_tensors;
 };
 
 class Session {

@@ -1,0 +1,14 @@
+4
+x P
+y P
+z C 3.0
+t C 2.0
+5
+a = x + y
+b = x + t
+d = b - y
+c = ASSERT d
+res = BIND a c
+2
+EVAL res 2 x 1.0 y 2.0
+EVAL res 2 x 1.0 y 4.0

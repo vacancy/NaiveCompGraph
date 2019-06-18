@@ -8,7 +8,6 @@
 #pragma once
 
 #include "core/tensor_impl.h"
-#include "graph/tensor.h"
 #include "graph/op.h"
 
 namespace ncg {

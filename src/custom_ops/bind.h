@@ -5,19 +5,18 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CUSTOM_OPS_BIND_H
-#define CUSTOM_OPS_BIND_H
+#pragma once
+
+#include "graph/op.h"
 
 namespace ncg {
 
 class GOpBind : public GraphOp, public GraphSingleOutputOp {
 public:
-    NCG_DEF_GOPNAME(GOpBind);
+    NCG_GOP_DEF_NAME(GOpBind);
 
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
-        if (inputs.size() != 2) {
-            graph.error(this) << "Bind op takes two inputs";
-        }
+        NCG_OP_CHECK_NR_INPUTS(graph, inputs, 2);
     }
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[0]->desc())};
@@ -37,4 +36,3 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !CUSTOM_OPS_BIND_H */

@@ -12,12 +12,7 @@
 #include "core/tensor_desc.h"
 #include "core/tensor_storage.h"
 
-#include <cstring>
-#include <cstdlib>
 #include <algorithm>
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <limits>
 
 namespace ncg {

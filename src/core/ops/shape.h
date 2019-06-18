@@ -10,8 +10,6 @@
 #include "core/op.h"
 
 #include <algorithm>
-#include <memory>
-#include <vector>
 
 namespace ncg {
 

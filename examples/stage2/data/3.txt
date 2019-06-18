@@ -1,0 +1,17 @@
+3
+x P
+y P
+z C 3.0
+5
+a = x + y
+b = PRINT a
+c = b * z
+d = PRINT c
+res = b * d
+5
+EVAL x 1 x 1.0
+EVAL a 2 x 1.0 y 2.0
+EVAL b 2 x 1.0 y 0.0
+EVAL c 2 x 2.0 y 1.0
+EVAL res 2 x -1.0 y 1.0
+

@@ -5,11 +5,9 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_OPS_ARITH_H
-#define CORE_OPS_ARITH_H
+#pragma once
 
 #include "core/op.h"
-
 #include <cmath>
 
 namespace ncg {
@@ -374,4 +372,3 @@ DEF_BINARY_ELEMWISE_OP(Max);
 
 } /* !namespace ncg */
 
-#endif /* !CORE_OPS_ARITH_H */

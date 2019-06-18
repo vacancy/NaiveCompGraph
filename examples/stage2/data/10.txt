@@ -1,0 +1,15 @@
+3
+x P
+y P
+z C 2
+6
+t = x * x
+L = t * y
+g = GRAD L
+gt = g AT t
+gx = g AT x
+gy = g AT y
+3
+EVAL gt 2 x 3.0 y 2.0
+EVAL gx 2 x 3.0 y 2.0
+EVAL gy 2 x 3.0 y 2.0

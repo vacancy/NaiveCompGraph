@@ -1,11 +1,8 @@
 /*
- * ncg.h
+ * nn.h
  * Copyright (C) 2019
  *
  * Distributed under terms of the MIT license.
  */
 
-#include "core.h"
-#include "graph.h"
-#include "nn.h"
-
+#include "nn/ops.h"

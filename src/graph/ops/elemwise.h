@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "core/tensor_impl.h"
 #include "core/ops/elemwise.h"
 #include "graph/op.h"
 

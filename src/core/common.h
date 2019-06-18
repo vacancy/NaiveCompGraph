@@ -14,6 +14,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include <stack>
 #include <memory>
 #include <typeinfo>

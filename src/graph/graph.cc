@@ -10,8 +10,6 @@
 #include "graph/graph.h"
 #include "graph/ops/grad.h"
 
-#include <sstream>
-
 namespace ncg {
 
 GraphTopoSorter::GraphTopoSorter(Graph &graph) : m_graph(graph) {
@@ -45,8 +43,8 @@ void GraphTopoSorter::mark_(const GTensorPtr &t) {
     m_visited.emplace(opi);
 }
 
-Graph::Graph() : m_ops() {
-    // Pass
+Graph::Graph() : m_ops(), m_backproped_tensors() {
+    // pass
 }
 
 std::ostringstream &Graph::error(const GraphOp *op) {
@@ -69,6 +67,11 @@ GOpPtr Graph::find_op(const std::string &name) {
 }
 
 void Graph::backward(GTensorPtr loss) {
+    auto loss_identifier = reinterpret_cast<std::uintptr_t>(loss.get());
+    if (m_backproped_tensors.find(loss_identifier) != m_backproped_tensors.end()) {
+        return;
+    }
+
     auto sorter = std::make_unique<GraphTopoSorter>(*this);
     sorter->sort({loss});
     const auto &sorted = sorter->sorted();
@@ -77,6 +80,8 @@ void Graph::backward(GTensorPtr loss) {
     for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
         (*it)->backward(*this, loss);
     }
+
+    m_backproped_tensors.emplace(loss_identifier);
 }
 
 Session::Session(Graph &graph) : m_graph(graph) {
