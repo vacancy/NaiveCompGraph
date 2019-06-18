@@ -33,7 +33,8 @@ public:
 
     virtual void forward(GraphForwardContext &ctx) const {
         auto variable = ctx.tensor(m_inputs[0]);
-        ctx.set_tensor(m_outputs[0], variable);
+        auto new_value = ctx.tensor(m_inputs[1]);
+        ctx.set_tensor(m_outputs[0], new_value);
     }
 
     virtual void forward_hook_post(GraphForwardContext &ctx) const {

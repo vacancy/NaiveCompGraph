@@ -1,0 +1,17 @@
+3
+x P
+y P
+z C 3.0
+7
+a = SIN z
+b = LOG y
+c = EXP x
+d = SIGMOID c
+e = TANH d
+t = a + b
+res = t * e
+4
+EVAL res 2 x 1.0 y 2.0
+EVAL res 2 x 1.0 y -1.0
+EVAL c 2 x 1.0 y 2.0
+EVAL d 2 x 1.0 y 1.0

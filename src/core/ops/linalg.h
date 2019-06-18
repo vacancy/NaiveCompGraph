@@ -5,8 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CORE_OPS_LINALG_H
-#define CORE_OPS_LINALG_H
+#pragma once
 
 #include "core/op.h"
 
@@ -107,4 +106,3 @@ private:
 
 } /* !namespace ncg */
 
-#endif /* !CORE_OPS_LINALG_H */

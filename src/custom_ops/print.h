@@ -5,11 +5,10 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef CUSTOM_OPS_PRINT_H
-#define CUSTOM_OPS_PRINT_H
+#pragma once
 
-#include "ncg.h"
-#include <string>
+#include "core/tensor_impl.h"
+#include "graph/op.h"
 
 namespace ncg {
 
@@ -26,6 +25,7 @@ public:
     virtual void check_inputs(Graph &graph, const GTensorVec &inputs) {
         NCG_OP_CHECK_NR_INPUTS(graph, inputs, 1);
     }
+
     virtual GTensorVec init_outputs(Graph &graph, const GTensorVec &inputs) {
         return {make_tensor(0, inputs[0]->desc())};
     }
@@ -45,4 +45,3 @@ public:
 
 } /* !namespace ncg */
 
-#endif /* !CUSTOM_OPS_PRINT_H */

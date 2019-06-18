@@ -7,11 +7,8 @@
 
 #pragma once
 
-#include "core/tensor.h"
 #include "core/tensor_impl.h"
-#include "core/op.h"
 #include "core/ops/reduction.h"
-
 #include "graph/op.h"
 
 namespace ncg {

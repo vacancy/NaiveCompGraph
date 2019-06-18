@@ -8,7 +8,6 @@
 #pragma once
 
 #include "core/common.h"
-#include <type_traits>
 
 namespace ncg {
 

@@ -8,7 +8,6 @@
 #pragma once
 
 #include "graph/op.h"
-#include <vector>
 
 namespace ncg {
 
