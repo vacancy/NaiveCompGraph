@@ -10,6 +10,8 @@
 #include "core/common.h"
 #include "core/datatype.h"
 
+#include <limits>
+
 namespace ncg {
 
 const size_t TensorMaxDim = 15;
