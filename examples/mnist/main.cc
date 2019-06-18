@@ -174,7 +174,7 @@ int main() {
     train_ops.insert(train_ops.begin() + 1, model->accuracy);
     auto test_ops = {model->loss, model->accuracy};
 
-    for (int i = 1; i <= train_loader->epoch_size() * 40; ++i) {
+    for (int i = 1; i <= train_loader->epoch_size() * 200; ++i) {
         auto start = std::chrono::steady_clock::now();
 
         auto inputs = train_loader->next();
