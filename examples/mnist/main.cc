@@ -186,7 +186,7 @@ int main() {
 
         auto end = std::chrono::steady_clock::now();
 
-        std::cerr << "Iteration [" << i / train_loader->epoch_size() + 1 << "::" << (i - 1) % train_loader->epoch_size() + 1 << "/" << train_loader->epoch_size() << "]: "
+        std::cerr << "Iteration " << i << " [" << (i - 1) / train_loader->epoch_size() + 1 << "::" << (i - 1) % train_loader->epoch_size() + 1 << "/" << train_loader->epoch_size() << "]: "
             << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
             << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ", "
             << "time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "(ms)" << ".";
@@ -204,7 +204,7 @@ int main() {
                 auto outputs = ctx.eval(test_ops);
                 ncg_assert_msg(ctx.ok(), ctx.error_str());
 
-                std::cerr << "Evaluation [" << i << "::" << j << "/" << test_loader->epoch_size() << "]: "
+                std::cerr << "Evaluation [" << (i - 1) / train_loader->epoch_size() + 1 << "::" << j << "/" << test_loader->epoch_size() << "]: "
                     << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
                     << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
                 if (j % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
