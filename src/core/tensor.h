@@ -11,6 +11,7 @@
 #include "core/datatype.h"
 #include "core/tensor_desc.h"
 #include "core/tensor_storage.h"
+#include "core/pickle.h"
 
 #include <algorithm>
 #include <limits>
@@ -33,6 +34,8 @@ public:
     Tensor(std::vector<std::vector<T>> value);
 
     virtual ~Tensor() = default;
+
+    void pickle(NCGPickler &pickler) const;
 
     TensorDesc &desc();
     const TensorDesc &desc() const;
@@ -140,6 +143,7 @@ protected:
     TensorStorageImpl<DT> *storage_impl_();
 };
 
+TensorPtr tensor(NCGUnpickler &unpickler);
 TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);
 TensorPtr empty(DTypeName dtype, const ShapeVec &shape);
 

@@ -174,6 +174,8 @@ int main() {
     train_ops.insert(train_ops.begin() + 1, model->accuracy);
     auto test_ops = {model->loss, model->accuracy};
 
+    ncg::get_default_session().save_shared_tensors("dumps/saved_model_0.bin");
+
     for (int i = 1; i <= train_loader->epoch_size() * 200; ++i) {
         auto start = std::chrono::steady_clock::now();
 
@@ -186,7 +188,10 @@ int main() {
 
         auto end = std::chrono::steady_clock::now();
 
-        std::cerr << "Iteration " << i << " [" << (i - 1) / train_loader->epoch_size() + 1 << "::" << (i - 1) % train_loader->epoch_size() + 1 << "/" << train_loader->epoch_size() << "]: "
+        auto i_epoch = (i - 1) / train_loader->epoch_size() + 1;
+        auto i_iter = (i - 1) % train_loader->epoch_size() + 1;
+
+        std::cerr << "Iteration " << i << " [" << i_epoch << "::" << i_iter << "/" << train_loader->epoch_size() << "]: "
             << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
             << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ", "
             << "time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "(ms)" << ".";
@@ -204,7 +209,7 @@ int main() {
                 auto outputs = ctx.eval(test_ops);
                 ncg_assert_msg(ctx.ok(), ctx.error_str());
 
-                std::cerr << "Evaluation [" << (i - 1) / train_loader->epoch_size() + 1 << "::" << j << "/" << test_loader->epoch_size() << "]: "
+                std::cerr << "Evaluation [" << i_epoch << "::" << j << "/" << test_loader->epoch_size() << "]: "
                     << "loss = " << ncg::tocc_scalar<double>(outputs[0]) << ", "
                     << "accuracy = " << ncg::tocc_scalar<double>(outputs[1]) << ".";
                 if (j % 100 == 0) std::cerr << std::endl; else std::cerr << "\r";
@@ -219,6 +224,8 @@ int main() {
                 << "loss = " << loss / tot << ", "
                 << "accuracy = " << accuracy / tot << "."
                 << std::endl;
+
+            ncg::get_default_session().save_shared_tensors(std::string("dumps/saved_model_") + std::to_string(i_epoch) + ".bin");
         }
     }
 

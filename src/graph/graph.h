@@ -136,6 +136,9 @@ public:
     TensorPtr shared_tensor(const GTensorPtr &) const;
     void set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tensor);
 
+    void save_shared_tensors(std::string filename);
+    void load_shared_tensors(std::string filename);
+
 protected:
     Graph &m_graph;
     std::unordered_map<std::uintptr_t, TensorPtr> m_shared_tensors;

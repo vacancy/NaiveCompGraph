@@ -111,6 +111,34 @@ void Session::set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tens
     m_shared_tensors[reinterpret_cast<std::uintptr_t>(gtensor.get())] = tensor;
 }
 
+void Session::save_shared_tensors(std::string filename) {
+    NCGPickler pickler(filename);
+
+    pickler.write<int64_t>(m_shared_tensors.size());
+    for (auto &it : m_shared_tensors) {
+        pickler.write<std::string>(reinterpret_cast<GraphTensor *>(it.first)->owner_op()->name());
+        it.second->pickle(pickler);
+    }
+
+    pickler.close();
+}
+
+void Session::load_shared_tensors(std::string filename) {
+    NCGUnpickler unpickler(filename);
+
+    size_t size = static_cast<size_t>(unpickler.read_int64());
+    for (ssize_t i = 0; i < size; ++i) {
+        std::string name = unpickler.read_string();
+        auto tensor = ::ncg::tensor(unpickler);
+        auto op = m_graph.find_op(name);
+        if (op != nullptr) {
+            set_shared_tensor(op->outputs()[0], tensor);
+        }
+    }
+
+    unpickler.close();
+}
+
 GraphForwardContext::GraphForwardContext() : m_session(get_default_session()), m_feed_dict(), m_storage() {
 }
 

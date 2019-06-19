@@ -7,6 +7,8 @@
 
 #include "core/tensor_desc.h"
 
+#include <cstring>
+
 namespace ncg {
 
 std::ostream &operator << (std::ostream &out, const ShapeVec &shape) {
@@ -39,6 +41,22 @@ TensorDesc::TensorDesc(DTypeName dtype, const ShapeVec &shape, const ShapeVec &s
     } else {
         set_default_stride();
     }
+}
+
+TensorDesc::TensorDesc(NCGUnpickler &unpickler) {
+    m_dtype = static_cast<DTypeName>(unpickler.read_int64());
+    auto shape = unpickler.read_ssize_array();
+    ncg_assert(shape.second == TensorMaxDim + 1);
+    memcpy(m_shape, shape.first.get(), sizeof(m_shape));
+    auto stride = unpickler.read_ssize_array();
+    ncg_assert(stride.second == TensorMaxDim + 1);
+    memcpy(m_stride, stride.first.get(), sizeof(m_stride));
+}
+
+void TensorDesc::pickle(NCGPickler &pickler) const {
+    pickler.write(static_cast<int64_t>(m_dtype));
+    pickler.write_ssize_array(m_shape, TensorMaxDim + 1);
+    pickler.write_ssize_array(m_stride, TensorMaxDim + 1);
 }
 
 DTypeName TensorDesc::dtype() const {
@@ -175,7 +193,7 @@ size_t TensorDesc::numel() const {
 bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
     if (dim() != rhs.dim()) {
         return false;
-    } 
+    }
 
     for (ssize_t i = 0; i < dim(); ++i) {
         if (allow_broadcast) {

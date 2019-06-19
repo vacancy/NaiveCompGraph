@@ -68,6 +68,12 @@ TensorStorage *TensorStorageImpl<DT>::clone(ssize_t start, ssize_t length) const
 }
 
 template <DTypeName DT>
+void TensorStorageImpl<DT>::pickle(NCGPickler &pickler) const {
+    pickler.write(static_cast<int64_t>(m_dtype));
+    pickler.write_char_array(m_data_ptr, m_size);
+}
+
+template <DTypeName DT>
 size_t TensorStorageImpl<DT>::size() const {
     return m_size;
 }
@@ -100,10 +106,23 @@ std::ostream &operator << (std::ostream &out, const TensorStorageImpl<DT> &stora
     return out;
 }
 
+NCG_DTYPE_INSTANTIATE_CLASS_ALL(TensorStorageImpl);
+
 #define INSTANTIATE_FUNC(dtype_name) std::ostream &operator << <DTypeName::dtype_name> (std::ostream &out, const TensorStorageImpl<DTypeName::dtype_name> &storage)
 NCG_DTYPE_INSTANTIATE_ALL(INSTANTIATE_FUNC);
 #undef INSTANTIATE_FUNC
 
-NCG_DTYPE_INSTANTIATE_CLASS_ALL(TensorStorageImpl);
+std::shared_ptr<TensorStorage> tensor_storage(NCGUnpickler &unpickler) {
+    auto dtype = static_cast<DTypeName>(unpickler.read_int64());
+
+#define TS_UNPICKLE_DTYPE_CASE(dtype_name) do { \
+    auto data = unpickler.read_char_array<typename DType<DTypeName::dtype_name>::cctype>(); \
+    return std::shared_ptr<TensorStorage>(new TensorStorageImpl<DTypeName::dtype_name>( \
+        data.first.release(), data.second \
+    )); \
+} while (0)
+NCG_DTYPE_SWITCH_ALL(dtype, TS_UNPICKLE_DTYPE_CASE);
+#undef TS_UNPICKLE_DTYPE_CASE
+}
 
 } /* !namespace ncg */

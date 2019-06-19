@@ -9,6 +9,7 @@
 
 #include "core/common.h"
 #include "core/datatype.h"
+#include "core/pickle.h"
 
 #include <limits>
 
@@ -32,6 +33,9 @@ public:
     TensorDesc();
     TensorDesc(DTypeName dtype, const ShapeVec &shape, const ShapeVec &stride = {});
     virtual ~TensorDesc() = default;
+
+    TensorDesc(NCGUnpickler &unpickler);
+    void pickle(NCGPickler &pickler) const;
 
     DTypeName dtype() const;
 
@@ -58,6 +62,7 @@ public:
     bool is_scalar_broadcasted() const;
     size_t numel() const;
     bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
+
     friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
 
 protected:

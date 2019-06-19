@@ -9,6 +9,8 @@
 
 #include "core/common.h"
 #include "core/datatype.h"
+#include "core/pickle.h"
+
 #include <limits>
 
 namespace ncg {
@@ -25,6 +27,7 @@ public:
     virtual size_t memsize() const = 0;
 
     virtual TensorStorage *clone(ssize_t start = 0, ssize_t length = std::numeric_limits<ssize_t>::max()) const = 0;
+    virtual void pickle(NCGPickler &pickler) const = 0;
 
     friend std::ostream &operator << (std::ostream &out, const TensorStorage &storage);
 
@@ -57,6 +60,7 @@ public:
     cctype *mutable_data_ptr();
 
     virtual TensorStorage *clone(ssize_t start = 0, ssize_t length = std::numeric_limits<ssize_t>::max()) const;
+    virtual void pickle(NCGPickler &pickler) const;
 
     friend std::ostream &operator << <> (std::ostream &out, const TensorStorageImpl<DT> &storage);
 
@@ -65,6 +69,7 @@ protected:
     size_t m_size;
 };
 
+std::shared_ptr<TensorStorage> tensor_storage(NCGUnpickler &unpickler);
 
 } /* !namespace ncg */
 

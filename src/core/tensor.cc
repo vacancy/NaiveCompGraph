@@ -21,6 +21,12 @@ namespace ncg {
 Tensor::Tensor() : m_desc(), m_storage(), m_own_data(false), m_data_ptr_offset(0) {}
 Tensor::Tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data, ssize_t data_ptr_offset) : m_desc(desc), m_storage(storage), m_own_data(own_data), m_data_ptr_offset(data_ptr_offset) {}
 
+void Tensor::pickle(NCGPickler &pickler) const {
+    m_desc.pickle(pickler);
+    m_storage->pickle(pickler);
+    pickler.write(static_cast<int64_t>(m_data_ptr_offset));
+}
+
 TensorDesc &Tensor::desc() {
     return m_desc;
 }
@@ -58,6 +64,13 @@ ssize_t Tensor::data_ptr_offset() const {
 std::ostream &operator << (std::ostream &out, const Tensor &tensor) {
     out << "Tensor(desc=" << tensor.desc() << ", storage=" << *tensor.storage() << ")";
     return out;
+}
+
+TensorPtr tensor(NCGUnpickler &unpickler) {
+    auto desc = TensorDesc(unpickler);
+    auto storage = tensor_storage(unpickler);
+    ssize_t m_data_ptr_offset = static_cast<ssize_t>(unpickler.read_int64());
+    return tensor(desc, storage, true, m_data_ptr_offset);
 }
 
 TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data, ssize_t data_ptr_offset) {
@@ -297,7 +310,6 @@ TensorPtr gather_backward(TensorPtr a, ssize_t axis, TensorPtr b, ssize_t input_
     ncg_assert_msg(ctx.ok(), ctx.error_str());
     return ctx.ok() ? output_vec[0] : nullptr;
 }
-
 
 #define NCG_OP_DEF_OPERATOR_FUNC(op_symbol, op_func) TensorPtr operator op_symbol (const TensorPtr &a, const TensorPtr &b) { \
     return op_func(a, b); \
