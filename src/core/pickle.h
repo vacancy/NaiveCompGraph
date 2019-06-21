@@ -44,18 +44,13 @@ public:
 
     virtual ~NCGPickler() { close(); }
 
-    template <typename T>
-    void write(const T &val);
-
-    template <>
-    void write<int64_t>(const int64_t &val) {
+    void write(const int64_t &val) {
         int32_t type_val = static_cast<int32_t>(NCGPickleTypes::Int64);
         m_out.write(WP(&type_val), sizeof(type_val));
         m_out.write(WP(&val), sizeof(val));
     }
 
-    template <>
-    void write<std::string>(const std::string &val) {
+    void write(const std::string &val) {
         int32_t type_val = static_cast<int32_t>(NCGPickleTypes::String);
         m_out.write(WP(&type_val), sizeof(type_val));
         int64_t size_val = val.size();

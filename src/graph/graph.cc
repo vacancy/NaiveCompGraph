@@ -114,9 +114,9 @@ void Session::set_shared_tensor(const GTensorPtr &gtensor, const TensorPtr &tens
 void Session::save_shared_tensors(std::string filename) {
     NCGPickler pickler(filename);
 
-    pickler.write<int64_t>(m_shared_tensors.size());
+    pickler.write(static_cast<int64_t>(m_shared_tensors.size()));
     for (auto &it : m_shared_tensors) {
-        pickler.write<std::string>(reinterpret_cast<GraphTensor *>(it.first)->owner_op()->name());
+        pickler.write(reinterpret_cast<GraphTensor *>(it.first)->owner_op()->name());
         it.second->pickle(pickler);
     }
 
