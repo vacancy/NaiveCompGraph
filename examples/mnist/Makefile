@@ -9,14 +9,12 @@
 SRC_DIR = src
 INC_DIR = src
 OBJ_DIR = obj
-BIN_DIR = bin
-LIB_DIR = lib
 TARGET = main
 
 CXX = $(ENVIRONMENT_OPTIONS) g++
 #CXX = clang++
 
-BIN_TARGET = $(BIN_DIR)/$(TARGET)
+BIN_TARGET = $(TARGET)
 #PROF_FILE = $(BIN_TARGET).prof
 
 INCLUDE_DIR = -I $(SRC_DIR) -I $(INC_DIR)
@@ -68,12 +66,11 @@ sinclude $(DEPFILES)
 $(BIN_TARGET): $(OBJS)
 	@echo $(OBJS)
 	@echo "[link] $< ..."
-	@mkdir -p $(BIN_DIR)
 	@$(CXX) $(OBJS) -o $@ $(CXXFLAGS)
 	@echo have a nice day!
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR) $(LIB_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_TARGET)
 
 run: $(BIN_TARGET)
 	./$(BIN_TARGET)
