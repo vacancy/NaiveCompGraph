@@ -15,6 +15,56 @@ Naive Computation Graph.
 - Graph operations allow dynamic shapes. E.g., `G::reshape(x, G::shape_cat({x.shape(0), -1}))`. Note that `x.shape(0)` returns a graph tensor (an int64-typed scalar).
 - (Bonus 6) Complete MNIST example.
 
+## MNIST Example
+构建了一个两层的神经网络：
+Flatten input: `(batch_size, 784)` -> Hidden layer `(batch_size, 512)` -> Logits `(batch_size, 10)`.
+网络使用Tanh激活。SGD learning rate = 0.01。网络初始化用Normal(0, 0.01)初始化Weights，全0初始化Bias。
+
+网络结构部分代码：
+```
+    MLPModel(std::mt19937 &rng) : rng(rng) {
+        image = G::placeholder("image", {100, 784}, DTypeName::Float32);
+        label = G::placeholder("label", {100}, DTypeName::Int64);
+        linear1 = G::linear("linear1", image, 512, rng);
+        activation1 = G::tanh(linear1);
+        logits = G::linear("linear2", activation1, 10, rng);
+        pred = logits.max(-1)[1];
+
+        prob = G::softmax(logits, -1);
+        loss = G::xent_sparse(prob, label, -1).mean(0);
+        accuracy = (pred.eq(label)).float32().mean(0);
+    }
+```
+
+Linear Layer初始化
+```
+GTensorPtr linear(std::string name, GTensorPtr x, ssize_t output_dim, std::mt19937 &rng, double stddev) {
+    auto W = variable(name + ":W", ::ncg::rand_normal(rng, x->desc().dtype(), {x->desc().shape(1), output_dim}, 0, stddev));
+    auto b = variable(name + ":b", ::ncg::zeros(x->desc().dtype(), {output_dim}));
+    return matmul(x, W) + b.unsqueeze(0);
+}
+```
+
+SGD部分代码：
+```
+    GTensorVec train_ops(float lr=0.01) {
+        GTensorVec ops;
+        auto &graph = get_default_graph();
+
+        graph.backward(loss);
+        for (const auto &name : {"linear1:W", "linear2:W", "linear1:b", "linear2:b"}) {
+            auto W = graph.find_op(name)->outputs()[0];
+            auto G = W->grad(loss);
+            auto new_W = W - G * lr;
+            ops.push_back(G::assign(W, new_W));
+        }
+
+        return ops;
+    }
+```
+
+训练50Epoch后可以达到准确度97.5%。
+
 ## Stage 1
 ```
 cd examples/stage1
