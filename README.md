@@ -1,19 +1,21 @@
 # NaiveCompGraph
 Naive Computation Graph.
 
+This project is the school project Computation Graph of the course Object-Oriented Programming at Tsinghua University.
+
 ## Implemented Features
-- (Bonus 3) Tensor (Max Dimension = 15).
+- Tensor (Max Dimension = 15).
 - Basic tensor operations: unary arithmetic, binary arithmatic, matrix multiplication, reshaping and broadcasting, slicing, indexing, reducing (min, max, sum, mean).
 - Reshaping, broadcasting and slicing are implemtented using the stride trick. No actual data copy needed. Tensor are made contiguous only when necessary.
 - Most operations supports non-contiguous input (e.g., except matmul, for performance perpose). Many operations (e.g., arithmatic operations) are optimized when the input view is contiguous.
 - Complete (and dynamic) data type support.
 - Computation graph.
-- (Bonus 4) Session for storing shared tensors (i.e., variables in Tensorflow or Parameters/Buffers in PyTorch).
-- (Bonus 1) Assign Op for updating variables.
-- (Bonus 2) Gradient for all operations are implemented.
+- Session for storing shared tensors (i.e., variables in Tensorflow or Parameters/Buffers in PyTorch).
+- Assign Op for updating variables.
+- Gradient for all operations are implemented.
 - Second-order gradient is supported.
 - Graph operations allow dynamic shapes. E.g., `G::reshape(x, G::shape_cat({x.shape(0), -1}))`. Note that `x.shape(0)` returns a graph tensor (an int64-typed scalar).
-- (Bonus 6) Complete MNIST example.
+- Complete MNIST example.
 
 ## MNIST Example
 构建了一个两层的神经网络：
