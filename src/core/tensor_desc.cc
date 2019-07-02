@@ -21,42 +21,19 @@ std::ostream &operator << (std::ostream &out, const ShapeVec &shape) {
     return out;
 }
 
-TensorDesc::TensorDesc() {
-    m_dtype = DTypeName::UInt8;
-    memset(m_shape, 0, sizeof(m_shape));
-    memset(m_stride, 0, sizeof(m_stride));
-}
-
-TensorDesc::TensorDesc(DTypeName dtype, const ShapeVec &shape, const ShapeVec &stride) : m_dtype(dtype) {
-    memset(m_shape, 0, sizeof(m_shape));
-    memset(m_stride, 0, sizeof(m_stride));
-
-    ncg_assert(shape.size() <= TensorMaxDim);
-    ncg_assert(stride.size() <= TensorMaxDim);
-
-    set_shape_vec(shape);
-    if (stride.size() > 0) {
-        ncg_assert(shape.size() == stride.size());
-        set_stride_vec(stride);
-    } else {
-        set_default_stride();
-    }
-}
+TensorDesc::TensorDesc() : m_dtype(DTypeName::UInt8), m_shape() {}
+TensorDesc::TensorDesc(DTypeName dtype, const ShapeVec &shape) : m_dtype(dtype), m_shape(shape) {}
+TensorDesc::TensorDesc(DTypeName dtype, ShapeVec &&shape) : m_dtype(dtype), m_shape(shape) {}
 
 TensorDesc::TensorDesc(NCGUnpickler &unpickler) {
     m_dtype = static_cast<DTypeName>(unpickler.read_int64());
     auto shape = unpickler.read_ssize_array();
-    ncg_assert(shape.second == TensorMaxDim + 1);
-    memcpy(m_shape, shape.first.get(), sizeof(m_shape));
-    auto stride = unpickler.read_ssize_array();
-    ncg_assert(stride.second == TensorMaxDim + 1);
-    memcpy(m_stride, stride.first.get(), sizeof(m_stride));
+    m_shape = ShapeVec(shape.first.get(), shape.first.get() + shape.second);
 }
 
 void TensorDesc::pickle(NCGPickler &pickler) const {
     pickler.write(static_cast<int64_t>(m_dtype));
-    pickler.write_ssize_array(m_shape, TensorMaxDim + 1);
-    pickler.write_ssize_array(m_stride, TensorMaxDim + 1);
+    pickler.write_ssize_array(&m_shape[0], m_shape.size());
 }
 
 DTypeName TensorDesc::dtype() const {
@@ -64,70 +41,104 @@ DTypeName TensorDesc::dtype() const {
 }
 
 size_t TensorDesc::dim() const {
-    size_t i;
-    for (i = 0; i <= TensorMaxDim; ++i)
-        if (m_shape[i] == TensorShape0) break;
-    return i;
+    return m_shape.size();
 }
 
-ShapeVec TensorDesc::shape_vec() const {
-    return ShapeVec(m_shape, m_shape + dim());
+size_t TensorDesc::numel() const {
+    size_t n = 1;
+    const size_t d = dim();
+    for (ssize_t i = 0; i < d; ++i) {
+        n *= m_shape[i];
+    }
+    return n;
 }
 
-void TensorDesc::set_shape_vec(const ShapeVec &shape) {
-    ncg_assert(shape.size() <= TensorMaxDim);
-    size_t i = 0;
-    for (auto it = shape.begin(); it != shape.end(); ++it) m_shape[i++] = *it;
-    m_shape[i++] = TensorShape0;
-}
-
-ssize_t *TensorDesc::shape() {
+const ShapeVec &TensorDesc::shape() const {
     return m_shape;
 }
-
-const ssize_t *TensorDesc::shape() const {
-    return m_shape;
-}
-
-ShapeVec TensorDesc::stride_vec() const {
-    return ShapeVec(m_stride, m_stride + dim());
-}
-
-void TensorDesc::set_stride_vec(const ShapeVec &stride) {
-    ncg_assert(stride.size() <= TensorMaxDim);
-    size_t i = 0;
-    for (auto it = stride.begin(); it != stride.end(); ++it) m_stride[i++] = *it;
-    m_stride[i++] = TensorShape0;
-}
-
-ssize_t *TensorDesc::stride() {
-    return m_stride;
-}
-
-const ssize_t *TensorDesc::stride() const {
-    return m_stride;
-}
-
-ssize_t &TensorDesc::shape(ssize_t i) {
-    return m_shape[i];
-}
-
 ssize_t TensorDesc::shape(ssize_t i) const {
     return m_shape[i];
 }
-
-ssize_t &TensorDesc::stride(ssize_t i) {
-    return m_stride[i];
+ssize_t &TensorDesc::shape(ssize_t i) {
+    return m_shape[i];
+}
+void TensorDesc::set_shape(const ShapeVec &shape) {
+    m_shape = shape;
+}
+void TensorDesc::set_shape(ShapeVec &&shape) {
+    m_shape = shape;
 }
 
-ssize_t TensorDesc::stride(ssize_t i) const {
-    return m_stride[i];
+bool TensorDesc::is_shape_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
+    const size_t d = dim();
+
+    if (d != rhs.dim()) {
+        return false;
+    }
+
+    for (ssize_t i = 0; i < d; ++i) {
+        if (allow_broadcast) {
+            if (m_shape[i] != rhs.m_shape[i] && !(m_shape[i] == 1 || rhs.m_shape[i] == 1)) return false;
+        } else {
+            if (m_shape[i] != rhs.m_shape[i]) return false;
+        }
+    }
+    return true;
 }
 
-ShapeVec TensorDesc::get_default_stride() const {
-    size_t d = dim();
+bool TensorDesc::is_tensor_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
+    return is_shape_compatible(rhs, allow_broadcast) && dtype() == rhs.dtype();
+}
+
+std::ostream &operator << (std::ostream &out, const TensorDesc &desc) {
+    const size_t d = desc.dim();
+    out << "TensorDesc(";
+        out << "dtype=" << get_dtype_name(desc.m_dtype) << ", ";
+        out << "dim=" << d << ", ";
+        out << "shape=" << desc.m_shape;
+    out << ")";
+    return out;
+}
+
+TensorLayout::TensorLayout() : TensorDesc(), m_stride() {}
+TensorLayout::TensorLayout(const TensorDesc &desc) : TensorDesc(desc) {
+    set_default_stride();
+}
+TensorLayout::TensorLayout(TensorDesc &&desc) : TensorDesc(desc) {
+    set_default_stride();
+}
+TensorLayout::TensorLayout(DTypeName dtype, const ShapeVec &shape) : TensorDesc(dtype, shape) {
+    set_default_stride();
+}
+TensorLayout::TensorLayout(DTypeName dtype, ShapeVec &&shape) : TensorDesc(dtype, shape) {
+    set_default_stride();
+}
+TensorLayout::TensorLayout(DTypeName dtype, const ShapeVec &shape, const ShapeVec &stride) : TensorDesc(dtype, shape), m_stride(stride) {
+    ncg_assert(shape.size() == stride.size());
+}
+TensorLayout::TensorLayout(DTypeName dtype, ShapeVec &&shape, ShapeVec &&stride) : TensorDesc(dtype, shape), m_stride(stride) {
+    ncg_assert(shape.size() == stride.size());
+}
+
+const ShapeVec &TensorLayout::stride() const {
+    return m_stride;
+}
+ssize_t TensorLayout::stride(ssize_t i) const {
+    return m_stride[i];
+}
+ssize_t &TensorLayout::stride(ssize_t i) {
+    return m_stride[i];
+}
+void TensorLayout::set_stride(const ShapeVec &stride) {
+    m_stride = stride;
+}
+void TensorLayout::set_stride(ShapeVec &&stride) {
+    m_stride = stride;
+}
+
+ShapeVec TensorLayout::get_default_stride() const {
+    const size_t d = this->dim();
     ShapeVec stride_vec(d);
-
     if (d == 0) {
         // pass
     } else {
@@ -136,26 +147,15 @@ ShapeVec TensorDesc::get_default_stride() const {
             stride_vec[i] = stride_vec[i + 1] * m_shape[i + 1];
         }
     }
-
     return stride_vec;
 }
 
-void TensorDesc::set_default_stride() {
-    size_t d = dim();
-
-    memset(m_stride, 0, sizeof(m_stride));
-    if (d == 0) {
-        // pass
-    } else {
-        m_stride[d - 1] = 1;
-        for (ssize_t i = d - 2; i >= 0; --i) {
-            m_stride[i] = m_stride[i + 1] * m_shape[i + 1];
-        }
-    }
+void TensorLayout::set_default_stride() {
+    set_stride(get_default_stride());
 }
 
-bool TensorDesc::is_contiguous() const {
-    size_t d = dim();
+bool TensorLayout::is_contiguous() const {
+    const size_t d = dim();
     if (d == 0) {
         return true;
     }
@@ -167,7 +167,7 @@ bool TensorDesc::is_contiguous() const {
     return true;
 }
 
- bool TensorDesc::is_scalar_broadcasted() const {
+ bool TensorLayout::is_scalar_broadcasted() const {
     size_t d = dim();
     if (d == 0) {
         return true;
@@ -178,41 +178,6 @@ bool TensorDesc::is_contiguous() const {
         }
     }
     return true;
- }
-
-
-size_t TensorDesc::numel() const {
-    size_t n = 1;
-    for (ssize_t i = 0; i < TensorMaxDim; ++i) {
-        if (m_shape[i] == TensorShape0) break;
-        n *= m_shape[i];
-    }
-    return n;
-}
-
-bool TensorDesc::is_compatible(const TensorDesc &rhs, bool allow_broadcast) const {
-    if (dim() != rhs.dim()) {
-        return false;
-    }
-
-    for (ssize_t i = 0; i < dim(); ++i) {
-        if (allow_broadcast) {
-            if (m_shape[i] != rhs.m_shape[i] && !(m_shape[i] == 1 || rhs.m_shape[i] == 1)) return false;
-        } else {
-            if (m_shape[i] != rhs.m_shape[i]) return false;
-        }
-    }
-    return true;
-}
-
-std::ostream &operator << (std::ostream &out, const TensorDesc &desc) {
-    size_t d = desc.dim();
-    out << "TensorDesc(dtype=" << get_dtype_name(desc.m_dtype) << ", dim=" << d << ", shape=[";
-    for (ssize_t i = 0; i < d; ++i) out << desc.m_shape[i] << (i == d - 1 ? "" : ", ");
-    out << "], stride=[";
-    for (ssize_t i = 0; i < d; ++i) out << desc.m_stride[i] << (i == d - 1 ? "" : ", ");
-    out << "])";
-    return out;
 }
 
 } /* !namespace ncg */

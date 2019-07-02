@@ -21,24 +21,16 @@ namespace ncg {
 template <DTypeName DT>
 class TensorImpl;
 
-class Tensor {
+class TensorBase {
 public:
     Tensor();
     Tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);
-
-    template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
-    Tensor(T value);
-    template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
-    Tensor(std::vector<T> value);
-    template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
-    Tensor(std::vector<std::vector<T>> value);
-
     virtual ~Tensor() = default;
-
-    void pickle(NCGPickler &pickler) const;
 
     TensorDesc &desc();
     const TensorDesc &desc() const;
+    TensorLayout &layout();
+    const TensorLayout &layout() const;
 
     template <DTypeName DT> TensorImpl<DT> *as();
     template <DTypeName DT> const TensorImpl<DT> *as() const;
@@ -52,8 +44,8 @@ public:
 
     bool own_data() const;
     ssize_t data_ptr_offset() const;
-    virtual void make_own_data() = 0;
-    virtual void make_contiguous() = 0;
+    virtual void make_own_data() const = 0;
+    virtual void make_contiguous() const = 0;
 
     friend std::ostream &operator << (std::ostream &out, const Tensor &tensor);
 
@@ -62,6 +54,34 @@ protected:
     std::shared_ptr<TensorStorage> m_storage;
     bool m_own_data;
     ssize_t m_data_ptr_offset;
+};
+
+template <DTypeName DT>
+class TensorImpl : public Tensor {
+public:
+    using cctype = typename DType<DT>::cctype;
+
+    TensorImpl();
+    explicit TensorImpl(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);
+    explicit TensorImpl(const TensorDesc &desc, TensorStorage *storage, bool own_data=true, ssize_t data_ptr_offset=0);
+    explicit TensorImpl(const TensorDesc &desc, cctype *data_ptr, bool own_data=true, ssize_t data_ptr_offset=0);
+    virtual ~TensorImpl() = default;
+
+    virtual void make_own_data();
+    virtual void make_contiguous();
+
+    template <typename ...Ints>
+    const cctype &at(Ints... args) const;
+    template <typename ...Ints>
+    cctype &mutable_at(Ints... args);
+    const cctype &elat(ssize_t i) const;
+    cctype &mutable_elat(ssize_t i);
+    const cctype *data_ptr() const;
+    cctype *mutable_data_ptr();
+
+protected:
+    const TensorStorageImpl<DT> *storage_impl_() const;
+    TensorStorageImpl<DT> *storage_impl_();
 };
 
 class TensorPtr : public std::shared_ptr<Tensor> {
@@ -110,38 +130,12 @@ public:
     TensorPtr index_select(ssize_t axis, const TensorPtr &indices) const;
     TensorPtr gather(ssize_t axis, const TensorPtr &indices) const;
 
+    void pickle(NCGPickler &pickler) const;
+
     friend std::ostream &operator << (std::ostream &out, const TensorPtr &tensor);
 };
 
 typedef std::vector<TensorPtr> TensorVec;
-
-template <DTypeName DT>
-class TensorImpl : public Tensor {
-public:
-    using cctype = typename DType<DT>::cctype;
-
-    TensorImpl();
-    explicit TensorImpl(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);
-    explicit TensorImpl(const TensorDesc &desc, TensorStorage *storage, bool own_data=true, ssize_t data_ptr_offset=0);
-    explicit TensorImpl(const TensorDesc &desc, cctype *data_ptr, bool own_data=true, ssize_t data_ptr_offset=0);
-    virtual ~TensorImpl() = default;
-
-    virtual void make_own_data();
-    virtual void make_contiguous();
-
-    template <typename ...Ints>
-    const cctype &at(Ints... args) const;
-    template <typename ...Ints>
-    cctype &mutable_at(Ints... args);
-    const cctype &elat(ssize_t i) const;
-    cctype &mutable_elat(ssize_t i);
-    const cctype *data_ptr() const;
-    cctype *mutable_data_ptr();
-
-protected:
-    const TensorStorageImpl<DT> *storage_impl_() const;
-    TensorStorageImpl<DT> *storage_impl_();
-};
 
 TensorPtr tensor(NCGUnpickler &unpickler);
 TensorPtr tensor(const TensorDesc &desc, std::shared_ptr<TensorStorage> storage, bool own_data=true, ssize_t data_ptr_offset=0);

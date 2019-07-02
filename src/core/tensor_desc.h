@@ -15,10 +15,7 @@
 
 namespace ncg {
 
-const size_t TensorMaxDim = 15;
-
-const ssize_t TensorShape0 = std::numeric_limits<ssize_t>::min();
-const ssize_t NoneShape = std::numeric_limits<ssize_t>::min() + 1;
+const ssize_t NoneShape = std::numeric_limits<ssize_t>::min();
 const ssize_t NewAxis = std::numeric_limits<ssize_t>::max();
 
 class ShapeVec : public std::vector<ssize_t> {
@@ -29,51 +26,94 @@ public:
 };
 
 class TensorDesc {
+/*
+ * Tensor description, including dtypes and shapes.
+ */
 public:
     TensorDesc();
-    TensorDesc(DTypeName dtype, const ShapeVec &shape, const ShapeVec &stride = {});
+    TensorDesc(DTypeName dtype, const ShapeVec &shape);
+    TensorDesc(DTypeName dtype, ShapeVec &&shape);
     virtual ~TensorDesc() = default;
 
+    TensorDesc(const TensorDesc &) = default;
+    TensorDesc(TensorDesc &&) = default;
+
+    /* Constructor from an NCGUnpickler. */
     TensorDesc(NCGUnpickler &unpickler);
+    /* Dump the data to an NCGPickler . */
     void pickle(NCGPickler &pickler) const;
 
+    /* Return the dtype of the tensor. */
     DTypeName dtype() const;
 
+    /* Return the dimension of the tensor. */
     size_t dim() const;
-
-    ShapeVec shape_vec() const;
-    void set_shape_vec(const ShapeVec &);
-    ssize_t *shape();
-    const ssize_t *shape() const;
-    ShapeVec stride_vec() const;
-    void set_stride_vec(const ShapeVec &);
-    ssize_t *stride();
-    const ssize_t *stride() const;
-
-    ssize_t &shape(ssize_t i);
-    ssize_t shape(ssize_t i) const;
-    ssize_t &stride(ssize_t i);
-    ssize_t stride(ssize_t i) const;
-
-    ShapeVec get_default_stride() const;
-    void set_default_stride();
-
-    bool is_contiguous() const;
-    bool is_scalar_broadcasted() const;
+    /* Return the total number of elments in the tensor. */
     size_t numel() const;
-    bool is_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
 
+    /* Return the shape (as a vector<ssize_t>) of the tensor. */
+    const ShapeVec &shape() const;
+    /* Return the size of the i-th dimension of the tensor; const version. */
+    ssize_t shape(ssize_t i) const;
+    /* Return the size of the i-th dimension of the tensor. */
+    ssize_t &shape(ssize_t i);
+    /* Set the shape (by a vector<ssize_t>) of the tensor. */
+    void set_shape(const ShapeVec &shape);
+    void set_shape(ShapeVec &&shape);
+
+    /* Check if two tensor shapes are equal or broadcastable. */
+    bool is_shape_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
+    /* Check if two tensor shapes are equal or broadcastable and the tensor dtypes are equal. */
+    bool is_tensor_compatible(const TensorDesc &rhs, bool allow_broadcast=false) const;
+
+    /* Print the tensor description to an ostream. */
     friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
 
 protected:
     DTypeName m_dtype;
-    ssize_t m_shape[TensorMaxDim + 1];
-    ssize_t m_stride[TensorMaxDim + 1];
+    ShapeVec m_shape;
 };
 
-class TensorDescVec : public std::vector<TensorDesc> {
+class TensorLayout : public TensorDesc {
 public:
-    using std::vector<TensorDesc>::vector;
+    TensorLayout();
+    TensorLayout(const TensorDesc &);
+    TensorLayout(TensorDesc &&);
+
+    TensorLayout(DTypeName dtype, const ShapeVec &shape);
+    TensorLayout(DTypeName dtype, ShapeVec &&shape);
+    TensorLayout(DTypeName dtype, const ShapeVec &shape, const ShapeVec &stride);
+    TensorLayout(DTypeName dtype, ShapeVec &&shape, ShapeVec &&stride);
+    virtual ~TensorLayout() = default;
+
+    TensorLayout(const TensorLayout &) = default;
+    TensorLayout(TensorLayout &&) = default;
+
+    /* Return the stride (as a vector<ssize_t>) of the tensor. */
+    const ShapeVec &stride() const;
+    /* Return the size of the i-th dimension of the tensor; const version. */
+    ssize_t stride(ssize_t i) const;
+    /* Return the size of the i-th dimension of the tensor. */
+    ssize_t &stride(ssize_t i);
+    /* Set the stride (by a vector<ssize_t>) of the tensor. */
+    void set_stride(const ShapeVec &stride);
+    void set_stride(ShapeVec &&stride);
+
+    /* Make a default stride of the tensor */
+    ShapeVec get_default_stride() const;
+    /* Use the default stride to overwrite the current stride. */
+    void set_default_stride();
+
+    /* Return if the tensor layout is a contiguous layout. */
+    bool is_contiguous() const;
+    /* Return if the tensor layout is broadcasted from a single scalar. */
+    bool is_scalar_broadcasted() const;
+
+    /* Print the tensor description to an ostream. */
+    friend std::ostream &operator << (std::ostream &out, const TensorDesc &desc);
+
+protected:
+    ShapeVec m_stride;
 };
 
 } /* !namespace ncg */
